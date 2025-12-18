@@ -665,6 +665,39 @@ def handle_telegram():
 
         logger.info(f"📱 Message from {chat_id}: '{text[:50]}'")
 
+        # Handle /start command
+        if text.lower() in ["/start"]:
+            logger.info("⚙️ Matched /start command")
+            welcome_msg = ("<b>🏥 Welcome to Zav Hospital Bot</b>\n\n"
+                          "This bot helps submit external patient requests.\n\n"
+                          "<b>How to use:</b>\n"
+                          "Send patient info in this format:\n"
+                          "<code>Name, Age, Operation, Details</code>\n\n"
+                          "<b>Example:</b>\n"
+                          "<code>Ahmed Ali, 45, Appendectomy, notes</code>\n\n"
+                          "<b>Commands:</b>\n"
+                          "/status - Check system status\n"
+                          "/addpatient - Submit patient data\n\n"
+                          "⏰ All requests are reviewed at 5 AM daily")
+            result = send_telegram_reply(chat_id, welcome_msg)
+            logger.info(f"💬 Sent welcome response: {result}")
+            return jsonify({"ok": True}), 200
+
+        # Handle /help command (same as /start)
+        if text.lower() in ["/help"]:
+            logger.info("⚙️ Matched /help command")
+            help_msg = ("<b>🏥 Zav Hospital Bot - Help</b>\n\n"
+                       "<b>Submit Patient Request:</b>\n"
+                       "Send message: <code>Name, Age, Operation, Details</code>\n\n"
+                       "<b>Check Status:</b>\n"
+                       "Send: <code>/status</code>\n\n"
+                       "<b>Contact:</b>\n"
+                       "For issues, contact admin.\n\n"
+                       "📝 All data is stored and synced daily")
+            result = send_telegram_reply(chat_id, help_msg)
+            logger.info(f"💬 Sent help response: {result}")
+            return jsonify({"ok": True}), 200
+
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
         logger.info(f"⚙️ Checking patterns for: {text}")
