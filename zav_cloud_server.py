@@ -67,16 +67,24 @@ class DatabaseManager:
     def __init__(self, connection_string: str):
         """Initialize database connection."""
         self.connection_string = connection_string
+        self.conn = None
+        self._init_connection()
         self._init_schema()
 
-    def get_connection(self):
-        """Get a database connection."""
+    def _init_connection(self):
+        """Initialize persistent database connection."""
         try:
-            conn = psycopg.connect(self.connection_string)
-            return conn
+            self.conn = psycopg.connect(self.connection_string, autocommit=True)
+            logger.info("✅ Database connection established (persistent)")
         except Exception as e:
-            logger.error(f"Database connection error: {e}")
+            logger.error(f"Failed to establish database connection: {e}")
             raise
+
+    def get_connection(self):
+        """Get the persistent database connection."""
+        if self.conn is None or self.conn.closed:
+            self._init_connection()
+        return self.conn
 
     def _init_schema(self):
         """Initialize database schema if not exists."""
@@ -147,9 +155,7 @@ class DatabaseManager:
                 );
             """)
 
-            conn.commit()
             cursor.close()
-            conn.close()
             logger.info("✅ Database schema initialized")
 
         except Exception as e:
@@ -159,13 +165,12 @@ class DatabaseManager:
     def query(self, sql: str, params: tuple = ()) -> List[Dict]:
         """Execute a SELECT query and return results."""
         try:
-            conn = psycopg.connect(self.connection_string)
+            conn = self.get_connection()
             conn.row_factory = dict_row
             cursor = conn.cursor()
             cursor.execute(sql, params)
             results = cursor.fetchall()
             cursor.close()
-            conn.close()
             return results
         except Exception as e:
             logger.error(f"Query error: {e}")
@@ -185,9 +190,7 @@ class DatabaseManager:
             cursor.execute(sql, values)
             result_id = cursor.fetchone()[0]
 
-            conn.commit()
             cursor.close()
-            conn.close()
             return result_id
         except Exception as e:
             logger.error(f"Insert error: {e}")
@@ -205,9 +208,7 @@ class DatabaseManager:
             sql = f"UPDATE {table} SET {set_clause}, updated_at = NOW() WHERE id = %s"
             cursor.execute(sql, values)
 
-            conn.commit()
             cursor.close()
-            conn.close()
             return True
         except Exception as e:
             logger.error(f"Update error: {e}")
