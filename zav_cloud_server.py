@@ -625,13 +625,13 @@ def handle_telegram():
 
         logger.info(f"Telegram: {text[:50]}")
 
-        # Handle /external-patient command
-        if text.startswith("/external-patient"):
-            parts = text.replace("/external-patient", "").strip().split(",")
+        # Handle /addpatient command (format: /addpatient Name, Age, Operation, Details)
+        if text.startswith("/addpatient"):
+            parts = text.replace("/addpatient", "").strip().split(",")
 
             if len(parts) < 3:
                 send_telegram_reply(chat_id,
-                    "❌ Format: /external-patient Name, Age, Operation, Details")
+                    "❌ Format: /addpatient Name, Age, Operation, Details")
                 return jsonify({"ok": True}), 200
 
             name = parts[0].strip()
