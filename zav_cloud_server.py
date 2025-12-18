@@ -663,14 +663,17 @@ def handle_telegram():
         # TEMPORARY: Send immediate confirmation that webhook was called
         try:
             chat_id_temp = data.get("message", {}).get("chat", {}).get("id")
+            logger.info(f"🔔 Attempting confirmation to chat_id: {chat_id_temp}")
+            logger.info(f"🔔 TELEGRAM_API_URL: {TELEGRAM_API_URL[:50]}...")
             if chat_id_temp:
-                requests.post(
+                conf_resp = requests.post(
                     f"{TELEGRAM_API_URL}/sendMessage",
                     json={"chat_id": chat_id_temp, "text": f"🔔 Webhook received your message!"},
                     timeout=3
                 )
-        except:
-            pass
+                logger.info(f"🔔 Confirmation response: {conf_resp.status_code} - {conf_resp.text[:100]}")
+        except Exception as e:
+            logger.error(f"🔔 Confirmation failed: {e}")
 
         logger.debug(f"📋 Payload keys: {list(data.keys())}")
 
