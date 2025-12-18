@@ -622,38 +622,37 @@ def send_telegram_reply(chat_id: int, text: str) -> bool:
 @app.route("/webhook/telegram", methods=["POST"])
 def handle_telegram():
     """Telegram webhook endpoint."""
-    global last_webhook_call
-    last_webhook_call = {}
+    webhook_log = {"timestamp": datetime.now().isoformat(), "status": "processing"}
 
     try:
         # Log webhook receipt immediately
         logger.info("⚙️ WEBHOOK RECEIVED - Processing Telegram message")
-        last_webhook_call["status"] = "received"
+        webhook_log["status"] = "received"
 
         data = request.get_json()
         logger.info(f"⚙️ Raw data keys: {list(data.keys()) if data else 'None'}")
-        last_webhook_call["raw_data_keys"] = list(data.keys()) if data else None
+        webhook_log["raw_data_keys"] = list(data.keys()) if data else None
 
         if not data or "message" not in data:
             logger.warning(f"⚙️ No message in payload")
-            last_webhook_call["error"] = "No message in payload"
-            return jsonify({"ok": True}), 200
+            webhook_log["error"] = "No message in payload"
+            return jsonify({"ok": True, "webhook_log": webhook_log}), 200
 
         msg = data["message"]
         chat_id = msg.get("chat", {}).get("id")
         text = msg.get("text", "").strip()
 
         logger.info(f"⚙️ Extracted - chat_id: {chat_id}, text: '{text[:50]}'")
-        last_webhook_call["chat_id"] = chat_id
-        last_webhook_call["text"] = text[:100]
+        webhook_log["chat_id"] = chat_id
+        webhook_log["text"] = text[:100]
 
         if not chat_id or not text:
             logger.warning(f"⚙️ Missing chat_id ({chat_id}) or text ({text})")
-            last_webhook_call["error"] = f"Missing chat_id or text"
-            return jsonify({"ok": True}), 200
+            webhook_log["error"] = f"Missing chat_id or text"
+            return jsonify({"ok": True, "webhook_log": webhook_log}), 200
 
         logger.info(f"📱 Telegram msg from {chat_id}: {text[:50]}")
-        last_webhook_call["received_at"] = datetime.now().isoformat()
+        webhook_log["received_at"] = datetime.now().isoformat()
 
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
@@ -686,7 +685,9 @@ def handle_telegram():
                 reply = f"✅ <b>Patient Request Recorded</b>\n👤 {name}, Age {age}\n🏥 Operation: {op}\n📋 Notes: {notes}\n\n⏰ Review: 5 AM sync"
                 result = send_telegram_reply(chat_id, reply)
                 logger.info(f"💬 Sent patient response: {result}")
-                return jsonify({"ok": True}), 200
+                webhook_log["response_sent"] = result
+                webhook_log["completed_at"] = datetime.now().isoformat()
+                return jsonify({"ok": True, "webhook_log": webhook_log}), 200
 
         # Handle /status or "status" command
         if text.lower() in ["/status", "status"]:
@@ -696,7 +697,9 @@ def handle_telegram():
             logger.info(f"⚙️ Calling send_telegram_reply for status")
             result = send_telegram_reply(chat_id, status_msg)
             logger.info(f"⚙️ Status response result: {result}")
-            return jsonify({"ok": True}), 200
+            webhook_log["response_sent"] = result
+            webhook_log["completed_at"] = datetime.now().isoformat()
+            return jsonify({"ok": True, "webhook_log": webhook_log}), 200
 
         # Default response
         logger.info(f"⚙️ No patterns matched, sending default response to {chat_id}")
@@ -709,16 +712,16 @@ def handle_telegram():
         logger.info(f"⚙️ Calling send_telegram_reply for default message")
         result = send_telegram_reply(chat_id, default_msg)
         logger.info(f"⚙️ Default response result: {result}")
-        last_webhook_call["response_sent"] = result
-        last_webhook_call["completed_at"] = datetime.now().isoformat()
+        webhook_log["response_sent"] = result
+        webhook_log["completed_at"] = datetime.now().isoformat()
 
-        return jsonify({"ok": True}), 200
+        return jsonify({"ok": True, "webhook_log": webhook_log}), 200
 
     except Exception as e:
         logger.error(f"❌ Webhook error: {e}", exc_info=True)
-        last_webhook_call["error"] = str(e)
-        last_webhook_call["completed_at"] = datetime.now().isoformat()
-        return jsonify({"ok": True}), 200
+        webhook_log["error"] = str(e)
+        webhook_log["completed_at"] = datetime.now().isoformat()
+        return jsonify({"ok": True, "webhook_log": webhook_log}), 200
 
 # ==================== SYNC ENDPOINTS ====================
 
@@ -799,13 +802,6 @@ def debug_webhook_test():
         debug_log.append(f"ERROR: {str(e)}")
         return jsonify({"ok": False, "error": str(e), "debug": debug_log}), 500
 
-@app.route("/debug/latest-webhook-call", methods=["GET"])
-def get_latest_webhook_call():
-    """Get the latest webhook call details (stored in memory)."""
-    global last_webhook_call
-    if 'last_webhook_call' not in globals():
-        return jsonify({"error": "No webhook calls yet"}), 404
-    return jsonify(last_webhook_call), 200
 
 # ==================== ERROR HANDLERS ====================
 
