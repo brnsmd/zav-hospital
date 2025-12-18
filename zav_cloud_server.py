@@ -720,6 +720,54 @@ def debug_telegram():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/debug/webhook-test", methods=["POST"])
+def debug_webhook_test():
+    """Test webhook handler with full tracing."""
+    debug_log = []
+    try:
+        data = request.get_json()
+        debug_log.append(f"1. Received JSON: {data is not None}")
+
+        if not data or "message" not in data:
+            debug_log.append("2. Missing data or message key")
+            return jsonify({"ok": True, "debug": debug_log}), 200
+
+        msg = data["message"]
+        chat_id = msg.get("chat", {}).get("id")
+        text = msg.get("text", "").strip()
+
+        debug_log.append(f"2. Extracted chat_id: {chat_id}, text: {text[:50]}")
+
+        if not chat_id or not text:
+            debug_log.append("3. Missing chat_id or text")
+            return jsonify({"ok": True, "debug": debug_log}), 200
+
+        debug_log.append(f"3. Validation passed")
+
+        # Test send_telegram_reply directly
+        debug_log.append(f"4. Testing send_telegram_reply()...")
+        test_url = f"{TELEGRAM_API_URL}/sendMessage"
+        debug_log.append(f"4a. URL starts with: {test_url[:40]}...")
+
+        test_payload = {"chat_id": chat_id, "text": "🧪 Debug test response"}
+        resp = requests.post(test_url, json=test_payload, timeout=10)
+
+        debug_log.append(f"4b. Response status: {resp.status_code}")
+        if resp.status_code == 200:
+            debug_log.append(f"4c. SUCCESS - Message sent!")
+        else:
+            debug_log.append(f"4c. FAILED - {resp.text[:100]}")
+
+        return jsonify({
+            "ok": True,
+            "debug": debug_log,
+            "telegram_response": resp.status_code
+        }), 200
+
+    except Exception as e:
+        debug_log.append(f"ERROR: {str(e)}")
+        return jsonify({"ok": False, "error": str(e), "debug": debug_log}), 500
+
 # ==================== ERROR HANDLERS ====================
 
 @app.errorhandler(404)
