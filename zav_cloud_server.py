@@ -950,6 +950,110 @@ def update_doctor(doctor_db_id: int):
         logger.error(f"Error updating doctor: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ==================== CONSULTATION BOOKING ENDPOINTS ====================
+
+@app.route("/api/consultations", methods=["GET"])
+def list_consultations():
+    """List consultations with optional filters."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        doctor_id = request.args.get("doctor_id")
+        patient_telegram_id = request.args.get("patient_telegram_id")
+        status = request.args.get("status", "all")
+
+        sql = "SELECT * FROM consultations WHERE 1=1"
+        params = []
+
+        if doctor_id:
+            sql += " AND doctor_id = %s"
+            params.append(doctor_id)
+
+        if patient_telegram_id:
+            sql += " AND patient_telegram_id = %s"
+            params.append(int(patient_telegram_id))
+
+        if status != "all":
+            sql += " AND status = %s"
+            params.append(status)
+
+        sql += " ORDER BY date DESC, time_start DESC"
+
+        consultations = db.query(sql, tuple(params))
+        return jsonify(consultations)
+    except Exception as e:
+        logger.error(f"Error listing consultations: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/consultations", methods=["POST"])
+def create_consultation():
+    """Create a new consultation booking."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        required_fields = ["patient_telegram_id", "patient_name", "doctor_id", "date", "time_start"]
+
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Generate consultation ID
+        from datetime import datetime
+        consultation_id = f"CON{int(datetime.now().timestamp())}"
+
+        # Insert consultation
+        consultation_data = {
+            "consultation_id": consultation_id,
+            "patient_telegram_id": data["patient_telegram_id"],
+            "patient_name": data["patient_name"],
+            "patient_phone": data.get("patient_phone", ""),
+            "doctor_id": data["doctor_id"],
+            "date": data["date"],
+            "time_start": data["time_start"],
+            "time_end": data.get("time_end", ""),
+            "status": "pending",
+            "notes": data.get("notes", ""),
+            "booked_by_telegram_id": data.get("booked_by_telegram_id", data["patient_telegram_id"]),
+            "booked_by_name": data.get("booked_by_name", data["patient_name"]),
+            "is_self_booking": data.get("is_self_booking", True),
+            "booking_relationship": data.get("booking_relationship", "self")
+        }
+
+        consultation_db_id = db.insert("consultations", consultation_data)
+
+        logger.info(f"✅ Created consultation {consultation_id} for {data['patient_name']} with {data['doctor_id']}")
+
+        return jsonify({
+            "id": consultation_db_id,
+            "consultation_id": consultation_id,
+            "status": "pending"
+        }), 201
+    except Exception as e:
+        logger.error(f"Error creating consultation: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/consultations/<consultation_id>", methods=["GET"])
+def get_consultation(consultation_id: str):
+    """Get consultation details."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        consultation = db.query(
+            "SELECT * FROM consultations WHERE consultation_id = %s",
+            (consultation_id,)
+        )
+
+        if not consultation:
+            return jsonify({"error": "Consultation not found"}), 404
+
+        return jsonify(consultation[0])
+    except Exception as e:
+        logger.error(f"Error getting consultation: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # ==================== OPERATION SLOT ENDPOINTS ====================
 
 @app.route("/api/operation-slots", methods=["GET"])
@@ -1273,6 +1377,106 @@ def handle_telegram():
 
             result = send_telegram_reply(chat_id, msg)
             logger.info(f"💬 Sent doctors list: {result}")
+            return jsonify({"ok": True}), 200
+
+        # Handle /book command - book consultation
+        if text.lower().startswith("/book"):
+            logger.info("⚙️ Matched /book command")
+            _last_webhook_result["matched_handler"] = "book"
+
+            # Parse command: /book DOC001 2025-12-20 10:00 Іванов Петро +380501234567
+            parts = text.split(maxsplit=5)
+
+            if len(parts) < 6:
+                msg = (
+                    "<b>📝 Як записатися на консультацію</b>\n\n"
+                    "<b>Формат:</b>\n"
+                    "<code>/book [ID_лікаря] [дата] [час] [ім'я] [телефон]</code>\n\n"
+                    "<b>Приклад:</b>\n"
+                    "<code>/book DOC001 2025-12-20 10:00 Іванов Петро +380501234567</code>\n\n"
+                    "Спочатку перегляньте список лікарів: /doctors"
+                )
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            doctor_id = parts[1]
+            date = parts[2]
+            time_start = parts[3]
+            patient_name = parts[4]
+            patient_phone = parts[5] if len(parts) > 5 else ""
+
+            # Verify doctor exists
+            doctor = db.query("SELECT * FROM doctors WHERE doctor_id = %s AND available = TRUE", (doctor_id,))
+            if not doctor:
+                msg = f"❌ Лікар {doctor_id} не знайдений або недоступний\n\nПерегляньте список: /doctors"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            # Create consultation via API
+            try:
+                book_resp = requests.post(
+                    f"http://127.0.0.1:{PORT}/api/consultations",
+                    json={
+                        "patient_telegram_id": chat_id,
+                        "patient_name": patient_name,
+                        "patient_phone": patient_phone,
+                        "doctor_id": doctor_id,
+                        "date": date,
+                        "time_start": time_start,
+                        "is_self_booking": True,
+                        "booking_relationship": "self"
+                    },
+                    timeout=5
+                )
+
+                if book_resp.status_code == 201:
+                    result_data = book_resp.json()
+                    msg = (
+                        f"✅ <b>Консультацію заброньовано!</b>\n\n"
+                        f"🆔 ID: <code>{result_data['consultation_id']}</code>\n"
+                        f"👨‍⚕️ Лікар: {doctor[0]['name']}\n"
+                        f"📅 Дата: {date}\n"
+                        f"🕐 Час: {time_start}\n"
+                        f"👤 Пацієнт: {patient_name}\n"
+                        f"📱 Телефон: {patient_phone}\n\n"
+                        f"<i>Статус: Очікує підтвердження</i>"
+                    )
+                else:
+                    msg = f"❌ Помилка бронювання: {book_resp.text[:100]}"
+
+            except Exception as e:
+                logger.error(f"Error calling book API: {e}")
+                msg = f"❌ Помилка: {str(e)}"
+
+            result = send_telegram_reply(chat_id, msg)
+            return jsonify({"ok": True}), 200
+
+        # Handle /mybookings command - show user's bookings
+        if text.lower().startswith("/mybookings"):
+            logger.info("⚙️ Matched /mybookings command")
+            _last_webhook_result["matched_handler"] = "mybookings"
+
+            # Get user's consultations
+            consultations = db.query(
+                "SELECT c.*, d.name as doctor_name FROM consultations c "
+                "LEFT JOIN doctors d ON c.doctor_id = d.doctor_id "
+                "WHERE c.patient_telegram_id = %s "
+                "ORDER BY c.date DESC, c.time_start DESC LIMIT 10",
+                (chat_id,)
+            )
+
+            if not consultations:
+                msg = "📋 У вас немає записів на консультації\n\nЗаписатися: /book"
+            else:
+                msg = "<b>📋 Ваші записи на консультації</b>\n\n"
+                for c in consultations:
+                    status_emoji = "⏳" if c['status'] == 'pending' else "✅" if c['status'] == 'confirmed' else "❌"
+                    msg += f"{status_emoji} <b>{c.get('doctor_name', c['doctor_id'])}</b>\n"
+                    msg += f"📅 {c['date']} о {c['time_start']}\n"
+                    msg += f"🆔 <code>{c['consultation_id']}</code>\n\n"
+
+            result = send_telegram_reply(chat_id, msg)
+            logger.info(f"💬 Sent bookings list: {result}")
             return jsonify({"ok": True}), 200
 
         # Handle /pending command - list pending patients (for department head)
