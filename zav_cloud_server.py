@@ -626,9 +626,10 @@ def handle_telegram():
         text = msg.get("text", "").strip()
 
         if not chat_id or not text:
+            logger.warning(f"⚠️ Missing chat_id or text: {data}")
             return jsonify({"ok": True}), 200
 
-        logger.info(f"📱 Telegram msg: {text[:50]}")
+        logger.info(f"📱 Telegram msg from {chat_id}: {text[:50]}")
 
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
@@ -657,23 +658,26 @@ def handle_telegram():
                     logger.error(f"DB error: {e}")
 
                 reply = f"✅ <b>Patient Request Recorded</b>\n👤 {name}, Age {age}\n🏥 Operation: {op}\n📋 Notes: {notes}\n\n⏰ Review: 5 AM sync"
-                send_telegram_reply(chat_id, reply)
+                result = send_telegram_reply(chat_id, reply)
+                logger.info(f"💬 Sent patient response: {result}")
                 return jsonify({"ok": True}), 200
 
         # Handle /status or "status" command
         if text.lower() in ["/status", "status"]:
             db_status = "✅" if db else "❌"
-            send_telegram_reply(chat_id, f"<b>🏥 System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅\n\n<b>Usage:</b> Send patient info:\nName, Age, Operation, Details")
+            result = send_telegram_reply(chat_id, f"<b>🏥 System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅\n\n<b>Usage:</b> Send patient info:\nName, Age, Operation, Details")
+            logger.info(f"💬 Sent status response: {result}")
             return jsonify({"ok": True}), 200
 
         # Default response
-        send_telegram_reply(chat_id,
+        result = send_telegram_reply(chat_id,
             "<b>🏥 Zav Hospital Bot</b>\n\n"
             "<b>Send patient info:</b>\n"
             "Ahmed Ali, 45, Appendectomy, notes\n\n"
             "<b>Or use:</b>\n"
             "/status - System status\n"
             "/start - Welcome")
+        logger.info(f"💬 Sent default response: {result}")
 
         return jsonify({"ok": True}), 200
 
