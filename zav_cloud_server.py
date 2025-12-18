@@ -636,9 +636,13 @@ def send_telegram_reply(chat_id: int, text: str) -> bool:
 @app.route("/webhook/telegram", methods=["POST"])
 def handle_telegram():
     """Telegram webhook endpoint."""
+    global _last_webhook_result
+    _last_webhook_result = {"timestamp": datetime.now().isoformat(), "status": "processing"}
+
     try:
         # Log webhook receipt immediately
         logger.info("📨 WEBHOOK RECEIVED - Processing Telegram message")
+        _last_webhook_result["status"] = "received"
 
         data = request.get_json()
         if not data:
@@ -664,10 +668,14 @@ def handle_telegram():
             return jsonify({"ok": True}), 200
 
         logger.info(f"📱 Message from {chat_id}: '{text[:50]}'")
+        _last_webhook_result["chat_id"] = chat_id
+        _last_webhook_result["text"] = text[:100]
+        _last_webhook_result["handlers_checked"] = []
 
         # Handle /start command
         if text.lower() in ["/start"]:
             logger.info("⚙️ Matched /start command")
+            _last_webhook_result["matched_handler"] = "start"
             welcome_msg = ("<b>🏥 Welcome to Zav Hospital Bot</b>\n\n"
                           "This bot helps submit external patient requests.\n\n"
                           "<b>How to use:</b>\n"
@@ -686,6 +694,7 @@ def handle_telegram():
         # Handle /help command (same as /start)
         if text.lower() in ["/help"]:
             logger.info("⚙️ Matched /help command")
+            _last_webhook_result["matched_handler"] = "help"
             help_msg = ("<b>🏥 Zav Hospital Bot - Help</b>\n\n"
                        "<b>Submit Patient Request:</b>\n"
                        "Send message: <code>Name, Age, Operation, Details</code>\n\n"
@@ -701,7 +710,9 @@ def handle_telegram():
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
         logger.info(f"⚙️ Checking patterns for: {text}")
+        _last_webhook_result["handlers_checked"].append("patient_pattern")
         if "," in text and len(text.split(",")) >= 3:
+            _last_webhook_result["matched_handler"] = "patient_data"
             logger.debug("Matched patient data pattern")
             # Remove /addpatient if present
             data_text = text.replace("/addpatient", "").strip()
@@ -732,17 +743,22 @@ def handle_telegram():
                 return jsonify({"ok": True}), 200
 
         # Handle /status or "status" command
+        _last_webhook_result["handlers_checked"].append("status")
         if text.lower() in ["/status", "status"]:
             logger.info(f"⚙️ Matched status command")
+            _last_webhook_result["matched_handler"] = "status"
             db_status = "✅" if db else "❌"
             status_msg = f"<b>🏥 System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅\n\n<b>Usage:</b> Send patient info:\nName, Age, Operation, Details"
             logger.info(f"⚙️ Calling send_telegram_reply for status")
             result = send_telegram_reply(chat_id, status_msg)
             logger.info(f"⚙️ Status response result: {result}")
+            _last_webhook_result["send_result"] = result
+            _last_webhook_result["completed_at"] = datetime.now().isoformat()
             return jsonify({"ok": True}), 200
 
         # Default response
         logger.info(f"⚙️ No patterns matched, sending default response to {chat_id}")
+        _last_webhook_result["matched_handler"] = "default"
         default_msg = ("<b>🏥 Zav Hospital Bot</b>\n\n"
                        "<b>Send patient info:</b>\n"
                        "Ahmed Ali, 45, Appendectomy, notes\n\n"
@@ -752,11 +768,15 @@ def handle_telegram():
         logger.info(f"⚙️ Calling send_telegram_reply for default message")
         result = send_telegram_reply(chat_id, default_msg)
         logger.info(f"⚙️ Default response result: {result}")
+        _last_webhook_result["send_result"] = result
+        _last_webhook_result["completed_at"] = datetime.now().isoformat()
 
         return jsonify({"ok": True}), 200
 
     except Exception as e:
         logger.error(f"❌ Webhook error: {e}", exc_info=True)
+        _last_webhook_result["error"] = str(e)
+        _last_webhook_result["completed_at"] = datetime.now().isoformat()
         return jsonify({"ok": True}), 200
 
 # ==================== SYNC ENDPOINTS ====================
@@ -770,7 +790,17 @@ def sync_google_sheets():
         "message": "Google Sheets sync will sync database to sheets"
     }), 202
 
+# ==================== GLOBALS FOR DEBUGGING ====================
+_last_webhook_result = {}
+
 # ==================== DEBUG ENDPOINTS ====================
+
+@app.route("/debug/last-webhook", methods=["GET"])
+def debug_last_webhook():
+    """Get the result of the last webhook call."""
+    if not _last_webhook_result:
+        return jsonify({"error": "No webhook calls yet", "timestamp": datetime.now().isoformat()}), 404
+    return jsonify(_last_webhook_result), 200
 
 @app.route("/debug/telegram-test", methods=["GET"])
 def debug_telegram():
