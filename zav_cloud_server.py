@@ -378,6 +378,7 @@ def health_check():
     """Health check endpoint."""
     status = {
         "status": "ok",
+        "version": "2.1-debug",  # Track deployment version
         "timestamp": datetime.now().isoformat(),
         "database": "connected" if db else "disconnected"
     }
