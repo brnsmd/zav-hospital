@@ -847,7 +847,9 @@ I'm here to help you manage hospital operations 24/7.
 
 ### Session: 2025-12-18 Implementation Complete ✅
 
-**What Was Built**: Complete workflow for external doctors to submit patients via Telegram, with department head approval and scheduling.
+**What Was Built**: Complete workflow for planned patients (currently non-hospitalized/"external" patients) to be submitted via Telegram for department head approval and surgical scheduling.
+
+**Purpose**: Manage intake of external/planned patients who need to be scheduled for hospitalization and surgery.
 
 **Status**: ✅ **DEPLOYED TO PRODUCTION - RAILWAY**
 
@@ -898,8 +900,8 @@ I'm here to help you manage hospital operations 24/7.
 - Placeholder for hospitalization date sync
 - Designed for future: `status='approved' AND hospitalization_date <= today`
 
-**Brick 8: Notifications to External Doctors** ✅ Complete
-- Ukrainian notifications on approval:
+**Brick 8: Notifications to Submitters** ✅ Complete
+- Ukrainian notifications on approval (sent to whoever submitted the patient):
   ```
   ✅ Запит схвалено!
   👤 Пацієнт: [name]
@@ -909,7 +911,7 @@ I'm here to help you manage hospital operations 24/7.
   ⏰ Операційна зала: [slot]
   ```
 - Rejection notifications with reason
-- Captures `external_doctor_chat_id` for routing
+- Captures `external_doctor_chat_id` (submitter's Telegram chat ID) for routing
 
 ### Google Sheets Integration ✅ Complete
 
@@ -998,15 +1000,15 @@ I'm here to help you manage hospital operations 24/7.
 
 ### Success Criteria Met
 
-✅ External doctors can submit patients via Telegram
-✅ Submissions stored with status='pending'
-✅ Department head can review via Telegram OR CLI
-✅ Approval assigns: date + doctor + operation slot
-✅ Notifications sent back to external doctors (Ukrainian)
-✅ Google Sheets auto-update on approval/rejection
-✅ System deployed 24/7 on Railway
+✅ External/planned patients can be submitted via Telegram
+✅ Submissions stored with status='pending' and source='telegram'
+✅ Department head can review pending patients via Telegram OR CLI
+✅ Approval assigns: hospitalization date + doctor + operation slot
+✅ Notifications sent back to submitter (Ukrainian)
+✅ Google Sheets auto-update with daily/weekly operation plans
+✅ System deployed 24/7 on Railway cloud
 ✅ PostgreSQL database operational
-✅ All endpoints verified working
+✅ All endpoints verified working in production
 
 ### Stream 6 Status
 
