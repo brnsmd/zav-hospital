@@ -22,7 +22,7 @@ curl -s https://zav-production.up.railway.app/api/consultations?date=today
 curl -s https://zav-production.up.railway.app/api/doctors
 
 # Pending external requests
-curl -s https://zav-production.up.railway.app/api/external-requests?status=pending
+curl -s https://zav-production.up.railway.app/api/patients/pending
 
 # System stats
 curl -s https://zav-production.up.railway.app/stats

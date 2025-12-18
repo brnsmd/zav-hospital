@@ -16,7 +16,7 @@ Make these API calls:
 
 ```bash
 # Pending external patient requests
-curl -s https://zav-production.up.railway.app/api/external-requests?status=pending
+curl -s https://zav-production.up.railway.app/api/patients/pending
 
 # Today's consultations (check for gaps)
 curl -s https://zav-production.up.railway.app/api/consultations?date=today

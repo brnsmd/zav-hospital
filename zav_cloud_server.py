@@ -538,6 +538,67 @@ def health_check():
     }
     return jsonify(status)
 
+@app.route("/stats", methods=["GET"])
+def get_stats():
+    """Get system statistics for daily briefing."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        # Beds occupied (hospitalized patients)
+        beds = db.query(
+            "SELECT COUNT(*) as count FROM patients WHERE status = 'hospitalized'"
+        )
+        beds_occupied = beds[0]['count'] if beds else 0
+
+        # Total bed capacity (configurable, default 20)
+        bed_capacity = 20
+
+        # Consultations scheduled today
+        consultations = db.query(
+            "SELECT COUNT(*) as count FROM consultations WHERE DATE(scheduled_time) = %s",
+            (today,)
+        )
+        consultations_today = consultations[0]['count'] if consultations else 0
+
+        # Pending approvals (external patient requests)
+        pending = db.query(
+            "SELECT COUNT(*) as count FROM patients WHERE status = 'pending' AND source = 'telegram'"
+        )
+        pending_approvals = pending[0]['count'] if pending else 0
+
+        # Active sicklists (placeholder - from CyberIntern, not in this DB)
+        active_sicklists = 0
+
+        # Active antibiotic courses
+        antibiotics = db.query(
+            "SELECT COUNT(*) as count FROM antibiotics WHERE status = 'active'"
+        )
+        active_antibiotics = antibiotics[0]['count'] if antibiotics else 0
+
+        # Equipment in use
+        equipment = db.query(
+            "SELECT COUNT(*) as count FROM equipment WHERE status = 'active'"
+        )
+        active_equipment = equipment[0]['count'] if equipment else 0
+
+        stats = {
+            "beds_occupied": beds_occupied,
+            "bed_capacity": bed_capacity,
+            "consultations_today": consultations_today,
+            "pending_approvals": pending_approvals,
+            "active_sicklists": active_sicklists,
+            "active_antibiotics": active_antibiotics,
+            "active_equipment": active_equipment,
+            "timestamp": datetime.now().isoformat()
+        }
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/patients", methods=["GET"])
 def list_patients():
     """List all patients."""
