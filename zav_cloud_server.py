@@ -644,6 +644,11 @@ def handle_telegram():
         logger.info("📨 WEBHOOK RECEIVED - Processing Telegram message")
         _last_webhook_result["status"] = "received"
 
+        # Log raw request for debugging
+        raw_data = request.get_data(as_text=True)
+        logger.info(f"📋 Raw request: {raw_data[:500]}")
+        _last_webhook_result["raw_data"] = raw_data[:200]
+
         data = request.get_json()
         if not data:
             logger.warning("⚠️ No JSON data received")
