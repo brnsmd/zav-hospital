@@ -602,12 +602,18 @@ def send_telegram_reply(chat_id: int, text: str) -> bool:
     try:
         url = f"{TELEGRAM_API_URL}/sendMessage"
         payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+
+        logger.info(f"⚙️ Sending to Telegram: URL={url[:50]}..., chat_id={chat_id}")
+
         resp = requests.post(url, json=payload, timeout=10)
+
+        logger.info(f"⚙️ Telegram response: status={resp.status_code}")
+
         if resp.status_code == 200:
             logger.info(f"✅ Sent to {chat_id}")
             return True
         else:
-            logger.error(f"❌ Send failed: {resp.status_code} - {resp.text}")
+            logger.error(f"❌ Send failed: {resp.status_code} - {resp.text[:200]}")
             return False
     except Exception as e:
         logger.error(f"❌ Telegram error: {e}")
@@ -616,15 +622,21 @@ def send_telegram_reply(chat_id: int, text: str) -> bool:
 @app.route("/webhook/telegram", methods=["POST"])
 def handle_telegram():
     """Telegram webhook endpoint."""
+    global last_webhook_call
+    last_webhook_call = {}
+
     try:
         # Log webhook receipt immediately
         logger.info("⚙️ WEBHOOK RECEIVED - Processing Telegram message")
+        last_webhook_call["status"] = "received"
 
         data = request.get_json()
         logger.info(f"⚙️ Raw data keys: {list(data.keys()) if data else 'None'}")
+        last_webhook_call["raw_data_keys"] = list(data.keys()) if data else None
 
         if not data or "message" not in data:
             logger.warning(f"⚙️ No message in payload")
+            last_webhook_call["error"] = "No message in payload"
             return jsonify({"ok": True}), 200
 
         msg = data["message"]
@@ -632,12 +644,16 @@ def handle_telegram():
         text = msg.get("text", "").strip()
 
         logger.info(f"⚙️ Extracted - chat_id: {chat_id}, text: '{text[:50]}'")
+        last_webhook_call["chat_id"] = chat_id
+        last_webhook_call["text"] = text[:100]
 
         if not chat_id or not text:
             logger.warning(f"⚙️ Missing chat_id ({chat_id}) or text ({text})")
+            last_webhook_call["error"] = f"Missing chat_id or text"
             return jsonify({"ok": True}), 200
 
         logger.info(f"📱 Telegram msg from {chat_id}: {text[:50]}")
+        last_webhook_call["received_at"] = datetime.now().isoformat()
 
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
@@ -693,11 +709,15 @@ def handle_telegram():
         logger.info(f"⚙️ Calling send_telegram_reply for default message")
         result = send_telegram_reply(chat_id, default_msg)
         logger.info(f"⚙️ Default response result: {result}")
+        last_webhook_call["response_sent"] = result
+        last_webhook_call["completed_at"] = datetime.now().isoformat()
 
         return jsonify({"ok": True}), 200
 
     except Exception as e:
         logger.error(f"❌ Webhook error: {e}", exc_info=True)
+        last_webhook_call["error"] = str(e)
+        last_webhook_call["completed_at"] = datetime.now().isoformat()
         return jsonify({"ok": True}), 200
 
 # ==================== SYNC ENDPOINTS ====================
@@ -778,6 +798,14 @@ def debug_webhook_test():
     except Exception as e:
         debug_log.append(f"ERROR: {str(e)}")
         return jsonify({"ok": False, "error": str(e), "debug": debug_log}), 500
+
+@app.route("/debug/latest-webhook-call", methods=["GET"])
+def get_latest_webhook_call():
+    """Get the latest webhook call details (stored in memory)."""
+    global last_webhook_call
+    if 'last_webhook_call' not in globals():
+        return jsonify({"error": "No webhook calls yet"}), 404
+    return jsonify(last_webhook_call), 200
 
 # ==================== ERROR HANDLERS ====================
 
