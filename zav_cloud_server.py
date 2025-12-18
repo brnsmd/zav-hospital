@@ -160,17 +160,40 @@ class DatabaseManager:
                     FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
                 );
 
+                -- Consultations table (extended for Doctor Is In system)
                 CREATE TABLE IF NOT EXISTS consultations (
                     id SERIAL PRIMARY KEY,
                     consultation_id VARCHAR UNIQUE NOT NULL,
-                    patient_id VARCHAR NOT NULL,
+                    patient_id VARCHAR,
+                    patient_telegram_id BIGINT,
+                    patient_name VARCHAR,
+                    patient_phone VARCHAR,
                     doctor_id VARCHAR,
-                    scheduled_date DATE,
-                    status VARCHAR DEFAULT 'scheduled',
+                    date DATE,
+                    time_start TIME,
+                    time_end TIME,
+                    status VARCHAR DEFAULT 'pending',
                     notes TEXT,
+                    booked_by_telegram_id BIGINT,
+                    booked_by_name VARCHAR,
+                    is_self_booking BOOLEAN DEFAULT TRUE,
+                    booking_relationship VARCHAR,
                     created_at TIMESTAMP DEFAULT NOW(),
-                    FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
+                    updated_at TIMESTAMP DEFAULT NOW()
                 );
+
+                -- Add new columns to existing consultations table if missing
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_telegram_id BIGINT;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_name VARCHAR;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_phone VARCHAR;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS date DATE;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS time_start TIME;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS time_end TIME;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS booked_by_telegram_id BIGINT;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS booked_by_name VARCHAR;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS is_self_booking BOOLEAN DEFAULT TRUE;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS booking_relationship VARCHAR;
+                ALTER TABLE consultations ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
 
                 CREATE TABLE IF NOT EXISTS alerts (
                     id SERIAL PRIMARY KEY,
@@ -189,17 +212,26 @@ class DatabaseManager:
                     raw_data TEXT
                 );
 
+                -- Doctors table (extended for Doctor Is In system)
                 CREATE TABLE IF NOT EXISTS doctors (
                     id SERIAL PRIMARY KEY,
                     doctor_id VARCHAR UNIQUE NOT NULL,
                     name VARCHAR NOT NULL,
                     specialization VARCHAR,
                     telegram_id BIGINT,
+                    telegram_chat_id BIGINT,
+                    telegram_username VARCHAR,
+                    is_approved BOOLEAN DEFAULT FALSE,
                     available BOOLEAN DEFAULT TRUE,
                     max_patients INT DEFAULT 12,
                     current_load INT DEFAULT 0,
                     created_at TIMESTAMP DEFAULT NOW()
                 );
+
+                -- Add new columns to existing doctors table if missing
+                ALTER TABLE doctors ADD COLUMN IF NOT EXISTS telegram_chat_id BIGINT;
+                ALTER TABLE doctors ADD COLUMN IF NOT EXISTS telegram_username VARCHAR;
+                ALTER TABLE doctors ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;
 
                 CREATE TABLE IF NOT EXISTS operation_slots (
                     id SERIAL PRIMARY KEY,
@@ -216,10 +248,37 @@ class DatabaseManager:
                     created_at TIMESTAMP DEFAULT NOW(),
                     updated_at TIMESTAMP DEFAULT NOW()
                 );
+
+                -- Doctor Availability table (for Doctor Is In system)
+                CREATE TABLE IF NOT EXISTS doctor_availability (
+                    id SERIAL PRIMARY KEY,
+                    availability_id VARCHAR UNIQUE NOT NULL,
+                    doctor_id VARCHAR NOT NULL,
+                    date DATE NOT NULL,
+                    time_start TIME NOT NULL,
+                    time_end TIME NOT NULL,
+                    status VARCHAR DEFAULT 'available',
+                    lock_reason VARCHAR,
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
+                );
+
+                -- Boss Accounts table (for Boss interface access control)
+                CREATE TABLE IF NOT EXISTS boss_accounts (
+                    id SERIAL PRIMARY KEY,
+                    telegram_username VARCHAR UNIQUE NOT NULL,
+                    telegram_chat_id BIGINT UNIQUE NOT NULL,
+                    full_name VARCHAR NOT NULL,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
             """)
 
             cursor.close()
             logger.info("✅ Database schema initialized")
+
+            # Initialize Boss account
+            self._init_boss_account()
 
             # Seed initial doctors if table is empty
             self._seed_doctors()
@@ -227,6 +286,29 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error initializing schema: {e}")
             raise
+
+    def _init_boss_account(self):
+        """Initialize Boss account (Цапенко Георгій)."""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Check if Boss account already exists
+            cursor.execute("SELECT COUNT(*) FROM boss_accounts WHERE telegram_chat_id = %s", (227230975,))
+            count = cursor.fetchone()[0]
+
+            if count == 0:
+                logger.info("Initializing Boss account...")
+                cursor.execute(
+                    "INSERT INTO boss_accounts (telegram_username, telegram_chat_id, full_name) "
+                    "VALUES (%s, %s, %s)",
+                    ('htsapenko', 227230975, 'Цапенко Георгій')
+                )
+                logger.info("✅ Boss account initialized: Цапенко Георгій (htsapenko, 227230975)")
+
+            cursor.close()
+        except Exception as e:
+            logger.error(f"Error initializing Boss account: {e}")
 
     def _seed_doctors(self):
         """Seed initial doctors if table is empty."""
@@ -243,25 +325,30 @@ class DatabaseManager:
                 doctors = [
                     {
                         "doctor_id": "DOC001",
-                        "name": "Др. Петрова Олена",
+                        "name": "Др. Іванов Петро",
                         "specialization": "Травматолог-ортопед",
                         "available": True,
+                        "is_approved": True,
                         "max_patients": 12,
                         "current_load": 0
                     },
                     {
                         "doctor_id": "DOC002",
-                        "name": "Др. Іванов Петро",
+                        "name": "Др. Коваленко Марія",
                         "specialization": "Хірург",
                         "available": True,
+                        "is_approved": True,
                         "max_patients": 10,
                         "current_load": 0
                     },
                     {
                         "doctor_id": "DOC003",
-                        "name": "Др. Коваленко Марія",
-                        "specialization": "Травматолог",
+                        "name": "Др. Цапенко Георгій",
+                        "specialization": "Ортопед-травматолог, Завідувач відділення",
+                        "telegram_chat_id": 227230975,
+                        "telegram_username": "htsapenko",
                         "available": True,
+                        "is_approved": True,
                         "max_patients": 12,
                         "current_load": 0
                     }
@@ -270,7 +357,7 @@ class DatabaseManager:
                 for doctor in doctors:
                     self.insert("doctors", doctor)
 
-                logger.info(f"✅ Seeded {len(doctors)} doctors")
+                logger.info(f"✅ Seeded {len(doctors)} doctors with correct specializations")
 
             cursor.close()
         except Exception as e:
@@ -357,6 +444,54 @@ else:
     elif not GOOGLE_SHEETS_URL:
         logger.warning("⚠️  GOOGLE_SHEETS_URL not configured")
 
+# ==================== ROLE DETECTION ====================
+
+def get_user_role(telegram_chat_id: int, telegram_username: str = None) -> str:
+    """
+    Determine user role based on Telegram credentials.
+
+    Role hierarchy:
+    1. Boss - Hardcoded chat_id or in boss_accounts table
+    2. Doctor - Approved doctor in doctors table
+    3. Patient - Default (public access)
+
+    Args:
+        telegram_chat_id: Telegram chat ID
+        telegram_username: Telegram username (optional)
+
+    Returns:
+        str: 'boss', 'doctor', or 'patient'
+    """
+    if not db:
+        return 'patient'
+
+    try:
+        # Check Boss (hardcoded + database)
+        if telegram_chat_id == 227230975:
+            return 'boss'
+
+        boss = db.query(
+            "SELECT * FROM boss_accounts WHERE telegram_chat_id = %s",
+            (telegram_chat_id,)
+        )
+        if boss:
+            return 'boss'
+
+        # Check approved doctor
+        doctor = db.query(
+            "SELECT * FROM doctors WHERE telegram_chat_id = %s AND is_approved = TRUE",
+            (telegram_chat_id,)
+        )
+        if doctor:
+            return 'doctor'
+
+        # Default: patient (public access)
+        return 'patient'
+
+    except Exception as e:
+        logger.error(f"Error detecting role: {e}")
+        return 'patient'
+
 # ==================== AUTHENTICATION ====================
 
 def require_token(f):
@@ -381,7 +516,7 @@ def health_check():
     """Health check endpoint."""
     status = {
         "status": "ok",
-        "version": "2.5-approval-workflow",  # Added approval workflow schema
+        "version": "3.0-doctor-is-in",  # Added Doctor Is In schema (consultations, doctor_availability, boss_accounts)
         "timestamp": datetime.now().isoformat(),
         "database": "connected" if db else "disconnected"
     }
