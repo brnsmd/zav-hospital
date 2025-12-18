@@ -388,13 +388,18 @@ class DatabaseManager:
             values = tuple(data.values())
 
             sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders}) RETURNING id"
+            logger.debug(f"Executing INSERT: {sql}")
+            logger.debug(f"Values: {values}")
             cursor.execute(sql, values)
-            result_id = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            logger.debug(f"Insert result: {result}")
+            result_id = result[0] if result else None
 
             cursor.close()
+            logger.debug(f"Insert returned ID: {result_id}")
             return result_id
         except Exception as e:
-            logger.error(f"Insert error: {e}")
+            logger.error(f"Insert error in table {table}: {e}", exc_info=True)
             return None
 
     def update(self, table: str, record_id: int, data: Dict) -> bool:
