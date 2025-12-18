@@ -595,6 +595,77 @@ def create_alert():
         logger.error(f"Error creating alert: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ==================== TELEGRAM INTEGRATION ====================
+
+def send_telegram_reply(chat_id: int, text: str) -> bool:
+    """Send reply to Telegram chat."""
+    try:
+        url = f"{TELEGRAM_API_URL}/sendMessage"
+        payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        resp = requests.post(url, json=payload, timeout=5)
+        return resp.status_code == 200
+    except Exception as e:
+        logger.error(f"Telegram send failed: {e}")
+        return False
+
+@app.route("/webhook/telegram", methods=["POST"])
+def handle_telegram():
+    """Telegram webhook endpoint."""
+    try:
+        data = request.get_json()
+        if not data or "message" not in data:
+            return jsonify({"ok": True}), 200
+
+        msg = data["message"]
+        chat_id = msg.get("chat", {}).get("id")
+        text = msg.get("text", "").strip()
+
+        if not chat_id or not text:
+            return jsonify({"ok": True}), 200
+
+        logger.info(f"Telegram: {text[:50]}")
+
+        # Handle /external-patient command
+        if text.startswith("/external-patient"):
+            parts = text.replace("/external-patient", "").strip().split(",")
+
+            if len(parts) < 3:
+                send_telegram_reply(chat_id,
+                    "❌ Format: /external-patient Name, Age, Operation, Details")
+                return jsonify({"ok": True}), 200
+
+            name = parts[0].strip()
+            age = parts[1].strip()
+            op = parts[2].strip()
+            notes = parts[3].strip() if len(parts) > 3 else "-"
+
+            # Store in database
+            try:
+                cursor = db.get_connection().cursor()
+                pid = f"EX{chat_id}{int(datetime.now().timestamp())}"
+                cursor.execute(
+                    "INSERT INTO patients (patient_id, name, status, source, created_at, updated_at) "
+                    "VALUES (%s, %s, %s, %s, NOW(), NOW())",
+                    (pid, name, "pending", "telegram")
+                )
+                logger.info(f"✅ Stored external patient: {name}")
+            except Exception as e:
+                logger.error(f"DB error: {e}")
+
+            reply = f"✅ <b>Request Recorded</b>\n{name}, Age {age}\nOperation: {op}\nNotes: {notes}\n\n⏰ Review: 5 AM daily sync"
+            send_telegram_reply(chat_id, reply)
+
+        # Handle /status command
+        elif text == "/status":
+            db_status = "✅" if db else "❌"
+            send_telegram_reply(chat_id, f"<b>System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅")
+
+        return jsonify({"ok": True}), 200
+
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return jsonify({"ok": True}), 200
+
 # ==================== SYNC ENDPOINTS ====================
 
 @app.route("/sync/sheets", methods=["POST"])
