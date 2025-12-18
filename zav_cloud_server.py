@@ -1495,6 +1495,241 @@ def handle_telegram():
             logger.info(f"💬 Sent bookings list: {result}")
             return jsonify({"ok": True}), 200
 
+        # Handle /myschedule command - doctor's consultation schedule
+        if text.lower().startswith("/myschedule"):
+            logger.info("⚙️ Matched /myschedule command")
+            _last_webhook_result["matched_handler"] = "myschedule"
+
+            # Get doctor ID from chat_id
+            doctor = db.query("SELECT * FROM doctors WHERE telegram_chat_id = %s", (chat_id,))
+
+            if not doctor:
+                msg = "❌ Ви не зареєстровані як лікар\n\nЗверніться до адміністратора"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            doctor_id = doctor[0]['doctor_id']
+            doctor_name = doctor[0]['name']
+
+            # Get upcoming consultations
+            from datetime import datetime, timedelta
+            today = datetime.now().date()
+            week_later = today + timedelta(days=7)
+
+            consultations = db.query(
+                "SELECT * FROM consultations "
+                "WHERE doctor_id = %s AND date >= %s AND date <= %s "
+                "ORDER BY date, time_start",
+                (doctor_id, today, week_later)
+            )
+
+            if not consultations:
+                msg = f"<b>📅 Розклад консультацій</b>\n\n👨‍⚕️ {doctor_name}\n\n📋 Немає запланованих консультацій на найближчі 7 днів"
+            else:
+                msg = f"<b>📅 Розклад консультацій</b>\n\n👨‍⚕️ {doctor_name}\n\n"
+                current_date = None
+                for c in consultations:
+                    if c['date'] != current_date:
+                        current_date = c['date']
+                        msg += f"\n<b>📆 {c['date']}</b>\n"
+
+                    status_emoji = "⏳" if c['status'] == 'pending' else "✅" if c['status'] == 'confirmed' else "❌"
+                    msg += f"{status_emoji} {c['time_start']} - {c['patient_name']}\n"
+                    msg += f"   📱 {c.get('patient_phone', 'N/A')}\n"
+
+            result = send_telegram_reply(chat_id, msg)
+            logger.info(f"💬 Sent schedule: {result}")
+            return jsonify({"ok": True}), 200
+
+        # Handle /myconsults command - doctor's all consultations
+        if text.lower().startswith("/myconsults"):
+            logger.info("⚙️ Matched /myconsults command")
+            _last_webhook_result["matched_handler"] = "myconsults"
+
+            # Get doctor ID from chat_id
+            doctor = db.query("SELECT * FROM doctors WHERE telegram_chat_id = %s", (chat_id,))
+
+            if not doctor:
+                msg = "❌ Ви не зареєстровані як лікар"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            doctor_id = doctor[0]['doctor_id']
+
+            # Get all consultations (limit 20)
+            consultations = db.query(
+                "SELECT * FROM consultations "
+                "WHERE doctor_id = %s "
+                "ORDER BY date DESC, time_start DESC LIMIT 20",
+                (doctor_id,)
+            )
+
+            if not consultations:
+                msg = "📋 У вас немає консультацій"
+            else:
+                msg = f"<b>📋 Всі консультації</b>\n\n"
+                for c in consultations:
+                    status_emoji = "⏳" if c['status'] == 'pending' else "✅" if c['status'] == 'confirmed' else "❌"
+                    msg += f"{status_emoji} {c['date']} {c['time_start']}\n"
+                    msg += f"👤 {c['patient_name']}\n"
+                    msg += f"📱 {c.get('patient_phone', 'N/A')}\n"
+                    msg += f"🆔 <code>{c['consultation_id']}</code>\n\n"
+
+            result = send_telegram_reply(chat_id, msg)
+            logger.info(f"💬 Sent consultations list: {result}")
+            return jsonify({"ok": True}), 200
+
+        # Handle /schedules command - view all doctor schedules (Boss only)
+        if text.lower().startswith("/schedules"):
+            logger.info("⚙️ Matched /schedules command")
+            _last_webhook_result["matched_handler"] = "schedules"
+
+            # Check if user is Boss
+            role = get_user_role(chat_id, msg.get("from", {}).get("username", ""))
+            if role != 'boss':
+                msg = "❌ Ця команда доступна тільки керівнику"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            # Get all doctors
+            doctors = db.query("SELECT * FROM doctors ORDER BY doctor_id")
+
+            from datetime import datetime, timedelta
+            today = datetime.now().date()
+            week_later = today + timedelta(days=7)
+
+            msg = "<b>📅 Розклади всіх лікарів</b>\n\n"
+
+            for doctor in doctors:
+                consultations = db.query(
+                    "SELECT * FROM consultations "
+                    "WHERE doctor_id = %s AND date >= %s AND date <= %s "
+                    "ORDER BY date, time_start",
+                    (doctor['doctor_id'], today, week_later)
+                )
+
+                msg += f"<b>👨‍⚕️ {doctor['name']}</b>\n"
+                msg += f"📋 {doctor['specialization']}\n"
+
+                if consultations:
+                    msg += f"📊 Консультацій: {len(consultations)}\n\n"
+                else:
+                    msg += f"📊 Немає запланованих консультацій\n\n"
+
+            result = send_telegram_reply(chat_id, msg)
+            return jsonify({"ok": True}), 200
+
+        # Handle /stats command - system statistics (Boss only)
+        if text.lower().startswith("/stats"):
+            logger.info("⚙️ Matched /stats command")
+            _last_webhook_result["matched_handler"] = "stats"
+
+            # Check if user is Boss
+            role = get_user_role(chat_id, msg.get("from", {}).get("username", ""))
+            if role != 'boss':
+                msg = "❌ Ця команда доступна тільки керівнику"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            # Get statistics
+            total_consultations = db.query("SELECT COUNT(*) as count FROM consultations")[0]['count']
+            pending_consultations = db.query("SELECT COUNT(*) as count FROM consultations WHERE status = 'pending'")[0]['count']
+            confirmed_consultations = db.query("SELECT COUNT(*) as count FROM consultations WHERE status = 'confirmed'")[0]['count']
+            total_doctors = db.query("SELECT COUNT(*) as count FROM doctors")[0]['count']
+            pending_patients = db.query("SELECT COUNT(*) as count FROM patients WHERE status = 'pending' AND source = 'telegram'")[0]['count']
+
+            msg = (
+                "<b>📊 Статистика системи</b>\n\n"
+                f"👨‍⚕️ Лікарі: {total_doctors}\n"
+                f"📋 Всього консультацій: {total_consultations}\n"
+                f"⏳ Очікують підтвердження: {pending_consultations}\n"
+                f"✅ Підтверджені: {confirmed_consultations}\n"
+                f"🏥 Запити на госпіталізацію: {pending_patients}\n"
+            )
+
+            result = send_telegram_reply(chat_id, msg)
+            return jsonify({"ok": True}), 200
+
+        # Handle /bookother command - book consultation for another person
+        if text.lower().startswith("/bookother"):
+            logger.info("⚙️ Matched /bookother command")
+            _last_webhook_result["matched_handler"] = "bookother"
+
+            # Parse command: /bookother DOC001 2025-12-20 10:00 Іванов Петро +380501234567 мама
+            parts = text.split(maxsplit=6)
+
+            if len(parts) < 7:
+                msg = (
+                    "<b>📝 Як записати іншу особу</b>\n\n"
+                    "<b>Формат:</b>\n"
+                    "<code>/bookother [ID_лікаря] [дата] [час] [ім'я] [телефон] [зв'язок]</code>\n\n"
+                    "<b>Приклад:</b>\n"
+                    "<code>/bookother DOC001 2025-12-20 10:00 Іванова Марія +380501234567 мама</code>\n\n"
+                    "<b>Зв'язок:</b> мама, тато, син, донька, чоловік, дружина, друг, колега"
+                )
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            doctor_id = parts[1]
+            date = parts[2]
+            time_start = parts[3]
+            patient_name = parts[4]
+            patient_phone = parts[5]
+            relationship = parts[6]
+
+            # Get booker name
+            booker_name = msg.get("from", {}).get("first_name", "Unknown")
+
+            # Verify doctor exists
+            doctor = db.query("SELECT * FROM doctors WHERE doctor_id = %s AND available = TRUE", (doctor_id,))
+            if not doctor:
+                msg = f"❌ Лікар {doctor_id} не знайдений\n\nПерегляньте список: /doctors"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            # Create consultation via API
+            try:
+                book_resp = requests.post(
+                    f"http://127.0.0.1:{PORT}/api/consultations",
+                    json={
+                        "patient_telegram_id": 0,  # No telegram for other person
+                        "patient_name": patient_name,
+                        "patient_phone": patient_phone,
+                        "doctor_id": doctor_id,
+                        "date": date,
+                        "time_start": time_start,
+                        "booked_by_telegram_id": chat_id,
+                        "booked_by_name": booker_name,
+                        "is_self_booking": False,
+                        "booking_relationship": relationship
+                    },
+                    timeout=5
+                )
+
+                if book_resp.status_code == 201:
+                    result_data = book_resp.json()
+                    msg = (
+                        f"✅ <b>Консультацію заброньовано!</b>\n\n"
+                        f"🆔 ID: <code>{result_data['consultation_id']}</code>\n"
+                        f"👨‍⚕️ Лікар: {doctor[0]['name']}\n"
+                        f"📅 Дата: {date}\n"
+                        f"🕐 Час: {time_start}\n"
+                        f"👤 Пацієнт: {patient_name}\n"
+                        f"📱 Телефон: {patient_phone}\n"
+                        f"👥 Зв'язок: {relationship}\n"
+                        f"📝 Записав(ла): {booker_name}\n\n"
+                        f"<i>Статус: Очікує підтвердження</i>"
+                    )
+                else:
+                    msg = f"❌ Помилка: {book_resp.text[:100]}"
+
+            except Exception as e:
+                logger.error(f"Error calling bookother API: {e}")
+                msg = f"❌ Помилка: {str(e)}"
+
+            result = send_telegram_reply(chat_id, msg)
+            return jsonify({"ok": True}), 200
+
         # Handle /pending command - list pending patients (for department head)
         if text.lower().startswith("/pending"):
             logger.info("⚙️ Matched /pending command")
