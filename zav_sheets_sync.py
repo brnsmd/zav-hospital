@@ -432,12 +432,12 @@ class GoogleSheetsSync:
     def _sync_daily_operations(self):
         """Sync today's approved operations to 'Щоденний План' (Daily Plan) sheet."""
         try:
-            from datetime import date
+            from datetime import date, datetime as dt
             today = date.today().isoformat()
 
             # Get approved patients scheduled for today
             approved_today = self.db.query(
-                "SELECT p.*, d.name as doctor_name, s.or_room, s.time_start "
+                "SELECT p.*, d.name as doctor_name, s.or_room, s.time_start, s.time_end "
                 "FROM patients p "
                 "LEFT JOIN doctors d ON p.assigned_doctor_id = d.doctor_id "
                 "LEFT JOIN operation_slots s ON p.id = s.patient_id "
@@ -470,8 +470,34 @@ class GoogleSheetsSync:
             ws.clear()
             ws.append_row(headers)
 
+            # Helper function to calculate duration in hours
+            def get_duration_str(time_start, time_end):
+                try:
+                    if isinstance(time_start, str):
+                        time_start = dt.strptime(time_start, "%H:%M").time()
+                    if isinstance(time_end, str):
+                        time_end = dt.strptime(time_end, "%H:%M").time()
+
+                    start_min = time_start.hour * 60 + time_start.minute
+                    end_min = time_end.hour * 60 + time_end.minute
+                    duration_min = end_min - start_min
+
+                    if duration_min <= 0:
+                        return ""
+                    hours = duration_min // 60
+                    mins = duration_min % 60
+
+                    if mins == 0:
+                        return f"{hours} год" if hours > 1 else f"{hours} год"
+                    else:
+                        return f"{hours}:{mins:02d} год"
+                except:
+                    return ""
+
             # Add patient data rows
             for idx, patient in enumerate(approved_today, 1):
+                duration = get_duration_str(patient.get("time_start", ""), patient.get("time_end", ""))
+
                 row = [
                     str(idx),
                     patient.get("department", "N/A"),
@@ -483,7 +509,7 @@ class GoogleSheetsSync:
                     patient.get("operation", ""),
                     patient.get("or_room", ""),
                     str(idx),
-                    "120 min",  # Default, would come from slot duration
+                    duration,
                     patient.get("doctor_name", "")
                 ]
                 ws.append_row(row)
@@ -495,16 +521,17 @@ class GoogleSheetsSync:
     def _sync_weekly_operations(self):
         """Sync weekly operation schedule to 'Тижневий План' (Weekly Plan) sheet."""
         try:
-            from datetime import date, timedelta
+            from datetime import date, timedelta, datetime as dt
             today = date.today()
             week_start = today - timedelta(days=today.weekday())  # Monday of current week
             week_end = week_start + timedelta(days=4)  # Friday
 
             # Get all approved operations for the week (Mon-Fri only)
             week_ops = self.db.query(
-                "SELECT p.name, p.operation, s.date, s.time_start "
+                "SELECT p.name, p.operation, s.date, s.time_start, s.time_end, d.name as surgeon_name "
                 "FROM patients p "
                 "LEFT JOIN operation_slots s ON p.id = s.patient_id "
+                "LEFT JOIN doctors d ON p.assigned_doctor_id = d.doctor_id "
                 "WHERE p.status IN ('approved', 'hospitalized') "
                 "AND DATE(p.hospitalization_date) BETWEEN %s AND %s "
                 "ORDER BY DATE(p.hospitalization_date), s.time_start",
@@ -523,6 +550,30 @@ class GoogleSheetsSync:
             ws.clear()
             ws.append_row(headers)
 
+            # Helper function to calculate duration in hours
+            def get_duration_str(time_start, time_end):
+                try:
+                    if isinstance(time_start, str):
+                        time_start = dt.strptime(time_start, "%H:%M").time()
+                    if isinstance(time_end, str):
+                        time_end = dt.strptime(time_end, "%H:%M").time()
+
+                    start_min = time_start.hour * 60 + time_start.minute
+                    end_min = time_end.hour * 60 + time_end.minute
+                    duration_min = end_min - start_min
+
+                    if duration_min <= 0:
+                        return ""
+                    hours = duration_min // 60
+                    mins = duration_min % 60
+
+                    if mins == 0:
+                        return f"{hours} год" if hours > 1 else f"{hours} год"
+                    else:
+                        return f"{hours}:{mins:02d} год"
+                except:
+                    return ""
+
             # Group operations by day of week
             ops_by_day = {i: [] for i in range(5)}  # Monday=0 to Friday=4
             for op in week_ops:
@@ -532,14 +583,17 @@ class GoogleSheetsSync:
 
                 day_of_week = op_date.weekday()
                 if 0 <= day_of_week <= 4:  # Only Mon-Fri
-                    time_str = op.get("time_start", "").strftime("%H:%M") if hasattr(op.get("time_start"), "strftime") else str(op.get("time_start", ""))
+                    duration = get_duration_str(op.get("time_start", ""), op.get("time_end", ""))
+                    surgeon = op.get("surgeon_name", "")
+
                     ops_by_day[day_of_week].append({
                         "name": op.get("name", ""),
                         "operation": op.get("operation", ""),
-                        "time": time_str
+                        "duration": duration,
+                        "surgeon": surgeon
                     })
 
-            # Format and add rows: each row = (Family name / Operation / Time) for each day
+            # Format and add rows: Family name / Operation / Duration / Surgeon for each day
             # Get max operations for any single day
             max_ops = max(len(ops) for ops in ops_by_day.values()) if any(ops_by_day.values()) else 0
 
@@ -548,7 +602,7 @@ class GoogleSheetsSync:
                 for day_idx in range(5):
                     if op_idx < len(ops_by_day[day_idx]):
                         op = ops_by_day[day_idx][op_idx]
-                        cell_text = f"{op['name']}\n{op['operation']}\n{op['time']}"
+                        cell_text = f"{op['name']}\n{op['operation']}\n{op['duration']}\n{op['surgeon']}"
                     else:
                         cell_text = ""
                     row.append(cell_text)
