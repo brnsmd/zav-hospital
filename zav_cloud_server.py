@@ -703,7 +703,7 @@ def handle_telegram():
 
         # Default response
         logger.info(f"⚙️ No patterns matched, sending default response to {chat_id}")
-        default_msg = ("<b>🏥 Zav Hospital Bot</b>\n\n"
+        default_msg = ("<b>🏥 Zav Hospital Bot (webhook v2.1)</b>\n\n"
                        "<b>Send patient info:</b>\n"
                        "Ahmed Ali, 45, Appendectomy, notes\n\n"
                        "<b>Or use:</b>\n"
