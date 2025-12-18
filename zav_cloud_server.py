@@ -515,8 +515,22 @@ def approve_patient(patient_id: str):
         success = db.update("patients", patient[0]["id"], update_data)
 
         logger.info(f"✅ Approved patient {patient_id} for {data['hospitalization_date']}")
+        logger.info(f"📌 Scheduled for CyberIntern sync on {data['hospitalization_date']}")
 
-        return jsonify({"success": success, "patient_id": patient_id})
+        # Notify external doctor via Telegram
+        if patient[0].get("external_doctor_chat_id"):
+            notify_msg = (
+                f"✅ <b>Запит схвалено!</b>\n\n"
+                f"👤 Пацієнт: {patient[0]['name']}\n"
+                f"📅 Дата госпіталізації: {data['hospitalization_date']}\n"
+                f"🏥 Операція: {patient[0].get('operation', 'N/A')}\n"
+                f"👨‍⚕️ Призначений лікар: {doctor_name}\n"
+                f"⏰ Операційна зала: {slot_id}"
+            )
+            send_telegram_reply(patient[0]["external_doctor_chat_id"], notify_msg)
+            logger.info(f"📨 Sent approval notification to {patient[0]['external_doctor_chat_id']}")
+
+        return jsonify({"success": success, "patient_id": patient_id, "sync_date": data["hospitalization_date"]})
     except Exception as e:
         logger.error(f"Error approving patient: {e}")
         return jsonify({"error": str(e)}), 500
@@ -549,6 +563,17 @@ def reject_patient(patient_id: str):
         success = db.update("patients", patient[0]["id"], update_data)
 
         logger.info(f"❌ Rejected patient {patient_id}: {data['rejection_reason']}")
+
+        # Notify external doctor via Telegram
+        if patient[0].get("external_doctor_chat_id"):
+            notify_msg = (
+                f"❌ <b>Запит відхилено</b>\n\n"
+                f"👤 Пацієнт: {patient[0]['name']}\n"
+                f"🏥 Операція: {patient[0].get('operation', 'N/A')}\n"
+                f"📝 Причина: {data['rejection_reason']}"
+            )
+            send_telegram_reply(patient[0]["external_doctor_chat_id"], notify_msg)
+            logger.info(f"📨 Sent rejection notification to {patient[0]['external_doctor_chat_id']}")
 
         return jsonify({"success": success, "patient_id": patient_id})
     except Exception as e:
@@ -1061,9 +1086,9 @@ def handle_telegram():
                     cursor = db.get_connection().cursor()
                     pid = f"EX{chat_id}{int(datetime.now().timestamp())}"
                     cursor.execute(
-                        "INSERT INTO patients (patient_id, name, age, operation, notes, status, source, created_at, updated_at) "
-                        "VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())",
-                        (pid, name, age, op, notes, "pending", "telegram")
+                        "INSERT INTO patients (patient_id, name, age, operation, notes, status, source, external_doctor_chat_id, created_at, updated_at) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())",
+                        (pid, name, age, op, notes, "pending", "telegram", chat_id)
                     )
                     logger.info(f"✅ Stored patient: {name}, {age}, {op}")
                 except Exception as e:
