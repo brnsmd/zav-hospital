@@ -190,6 +190,9 @@ class DatabaseManager:
                     WHEN undefined_object THEN NULL;
                 END $$;
 
+                -- Make patient_id nullable (for non-hospitalized patient consultations)
+                ALTER TABLE consultations ALTER COLUMN patient_id DROP NOT NULL;
+
                 -- Add new columns to existing consultations table if missing
                 ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_telegram_id BIGINT;
                 ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_name VARCHAR;
