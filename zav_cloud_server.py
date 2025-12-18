@@ -802,6 +802,19 @@ def debug_last_webhook():
         return jsonify({"error": "No webhook calls yet", "timestamp": datetime.now().isoformat()}), 404
     return jsonify(_last_webhook_result), 200
 
+@app.route("/debug/send-test/<int:chat_id>", methods=["GET"])
+def debug_send_test(chat_id):
+    """Send a test message to verify send_telegram_reply works."""
+    test_msg = f"🧪 Test at {datetime.now().isoformat()}"
+    result = send_telegram_reply(chat_id, test_msg)
+    return jsonify({
+        "send_result": result,
+        "chat_id": chat_id,
+        "message": test_msg,
+        "token_set": bool(TELEGRAM_BOT_TOKEN),
+        "api_url_preview": TELEGRAM_API_URL[:40] if TELEGRAM_API_URL else "EMPTY"
+    }), 200
+
 @app.route("/debug/telegram-test", methods=["GET"])
 def debug_telegram():
     """Test Telegram API connectivity."""
