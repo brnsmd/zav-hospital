@@ -153,6 +153,12 @@ class DatabaseManager:
                     resolved_at TIMESTAMP,
                     FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
                 );
+
+                CREATE TABLE IF NOT EXISTS webhook_log (
+                    id SERIAL PRIMARY KEY,
+                    received_at TIMESTAMP DEFAULT NOW(),
+                    raw_data TEXT
+                );
             """)
 
             cursor.close()
@@ -649,6 +655,17 @@ def handle_telegram():
         logger.info(f"📋 Raw request: {raw_data[:500]}")
         _last_webhook_result["raw_data"] = raw_data[:200]
 
+        # Store webhook call in database for debugging
+        try:
+            cursor = db.get_connection().cursor()
+            cursor.execute(
+                "INSERT INTO webhook_log (received_at, raw_data) VALUES (NOW(), %s)",
+                (raw_data[:500],)
+            )
+            logger.info("📝 Logged webhook to database")
+        except Exception as e:
+            logger.warning(f"Could not log webhook: {e}")
+
         data = request.get_json()
         if not data:
             logger.warning("⚠️ No JSON data received")
@@ -832,6 +849,21 @@ def debug_send_test(chat_id):
         "token_set": bool(TELEGRAM_BOT_TOKEN),
         "api_url_preview": TELEGRAM_API_URL[:40] if TELEGRAM_API_URL else "EMPTY"
     }), 200
+
+@app.route("/debug/webhook-logs", methods=["GET"])
+def debug_webhook_logs():
+    """Get recent webhook log entries from database."""
+    try:
+        cursor = db.get_connection().cursor()
+        cursor.execute("SELECT * FROM webhook_log ORDER BY received_at DESC LIMIT 10")
+        rows = cursor.fetchall()
+        cursor.close()
+        return jsonify({
+            "count": len(rows),
+            "logs": [{"id": r[0], "received_at": str(r[1]), "raw_data": r[2]} for r in rows]
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/debug/telegram-test", methods=["GET"])
 def debug_telegram():
