@@ -600,23 +600,37 @@ def create_alert():
 def send_telegram_reply(chat_id: int, text: str) -> bool:
     """Send reply to Telegram chat."""
     try:
+        # Validate inputs
+        if not TELEGRAM_BOT_TOKEN:
+            logger.error("❌ TELEGRAM_BOT_TOKEN is empty!")
+            return False
+
+        if not chat_id or not text:
+            logger.error(f"❌ Invalid inputs: chat_id={chat_id}, text_len={len(text) if text else 0}")
+            return False
+
         url = f"{TELEGRAM_API_URL}/sendMessage"
         payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
 
-        logger.info(f"⚙️ Sending to Telegram: URL={url[:50]}..., chat_id={chat_id}")
+        logger.info(f"⚙️ Sending to Telegram: chat_id={chat_id}, text_len={len(text)}")
 
         resp = requests.post(url, json=payload, timeout=10)
 
         logger.info(f"⚙️ Telegram response: status={resp.status_code}")
 
         if resp.status_code == 200:
-            logger.info(f"✅ Sent to {chat_id}")
-            return True
+            result = resp.json()
+            if result.get("ok"):
+                logger.info(f"✅ Message sent successfully to {chat_id} (msg_id: {result.get('result', {}).get('message_id')})")
+                return True
+            else:
+                logger.error(f"❌ Telegram API error: {result}")
+                return False
         else:
-            logger.error(f"❌ Send failed: {resp.status_code} - {resp.text[:200]}")
+            logger.error(f"❌ HTTP {resp.status_code}: {resp.text[:200]}")
             return False
     except Exception as e:
-        logger.error(f"❌ Telegram error: {e}")
+        logger.error(f"❌ Telegram error: {type(e).__name__}: {e}", exc_info=True)
         return False
 
 @app.route("/webhook/telegram", methods=["POST"])
@@ -624,26 +638,32 @@ def handle_telegram():
     """Telegram webhook endpoint."""
     try:
         # Log webhook receipt immediately
-        logger.info("⚙️ WEBHOOK RECEIVED - Processing Telegram message")
+        logger.info("📨 WEBHOOK RECEIVED - Processing Telegram message")
 
         data = request.get_json()
-        logger.info(f"⚙️ Raw data keys: {list(data.keys()) if data else 'None'}")
+        if not data:
+            logger.warning("⚠️ No JSON data received")
+            return jsonify({"ok": True}), 200
 
-        if not data or "message" not in data:
-            logger.warning(f"⚙️ No message in payload")
+        logger.debug(f"📋 Payload keys: {list(data.keys())}")
+
+        if "message" not in data:
+            logger.warning("⚠️ No 'message' in payload")
             return jsonify({"ok": True}), 200
 
         msg = data["message"]
         chat_id = msg.get("chat", {}).get("id")
         text = msg.get("text", "").strip()
 
-        logger.info(f"⚙️ Extracted - chat_id: {chat_id}, text: '{text[:50]}'")
-
-        if not chat_id or not text:
-            logger.warning(f"⚙️ Missing chat_id ({chat_id}) or text ({text})")
+        if not chat_id:
+            logger.warning("⚠️ No chat_id in message")
             return jsonify({"ok": True}), 200
 
-        logger.info(f"📱 Telegram msg from {chat_id}: {text[:50]}")
+        if not text:
+            logger.warning(f"⚠️ No text in message from {chat_id}")
+            return jsonify({"ok": True}), 200
+
+        logger.info(f"📱 Message from {chat_id}: '{text[:50]}'")
 
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
