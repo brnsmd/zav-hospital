@@ -182,6 +182,14 @@ class DatabaseManager:
                     updated_at TIMESTAMP DEFAULT NOW()
                 );
 
+                -- Drop foreign key constraint if it exists (for non-hospitalized patient bookings)
+                DO $$
+                BEGIN
+                    ALTER TABLE consultations DROP CONSTRAINT IF EXISTS consultations_patient_id_fkey;
+                EXCEPTION
+                    WHEN undefined_object THEN NULL;
+                END $$;
+
                 -- Add new columns to existing consultations table if missing
                 ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_telegram_id BIGINT;
                 ALTER TABLE consultations ADD COLUMN IF NOT EXISTS patient_name VARCHAR;
