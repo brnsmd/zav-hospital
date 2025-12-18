@@ -1177,19 +1177,63 @@ def handle_telegram():
         if text.lower().startswith("/start"):
             logger.info("⚙️ Matched /start command")
             _last_webhook_result["matched_handler"] = "start"
-            welcome_msg = ("<b>🏥 Welcome to Zav Hospital Bot</b>\n\n"
-                          "This bot helps submit external patient requests.\n\n"
-                          "<b>How to use:</b>\n"
-                          "Send patient info in this format:\n"
-                          "<code>Name, Age, Operation, Details</code>\n\n"
-                          "<b>Example:</b>\n"
-                          "<code>Ahmed Ali, 45, Appendectomy, notes</code>\n\n"
-                          "<b>Commands:</b>\n"
-                          "/status - Check system status\n"
-                          "/addpatient - Submit patient data\n\n"
-                          "⏰ All requests are reviewed at 5 AM daily")
+
+            # Detect user role
+            username = msg.get("from", {}).get("username", "")
+            role = get_user_role(chat_id, username)
+            logger.info(f"👤 User role detected: {role} (chat_id: {chat_id}, username: {username})")
+
+            # Boss interface
+            if role == 'boss':
+                welcome_msg = (
+                    "<b>👨‍💼 Вітаємо, Завідувач відділення!</b>\n\n"
+                    "<b>📋 Доступні команди:</b>\n"
+                    "/pending - Переглянути запити на госпіталізацію\n"
+                    "/approve - Схвалити запит\n"
+                    "/reject - Відхилити запит\n"
+                    "/doctors - Управління лікарями\n"
+                    "/schedules - Розклади всіх лікарів\n"
+                    "/stats - Статистика відділення\n\n"
+                    "<b>🔐 Режим роботи:</b> Керівник"
+                )
+            # Doctor interface
+            elif role == 'doctor':
+                # Get doctor info
+                doctor = db.query(
+                    "SELECT * FROM doctors WHERE telegram_chat_id = %s",
+                    (chat_id,)
+                )
+                doctor_name = doctor[0]['name'] if doctor else "Лікар"
+
+                welcome_msg = (
+                    f"<b>👨‍⚕️ Вітаємо, {doctor_name}!</b>\n\n"
+                    "<b>📋 Доступні команди:</b>\n"
+                    "/myschedule - Мій розклад консультацій\n"
+                    "/locktime - Заблокувати час\n"
+                    "/unlocktime - Відкрити час\n"
+                    "/myconsults - Мої консультації\n\n"
+                    "<b>🔐 Режим роботи:</b> Лікар"
+                )
+            # Patient interface (public)
+            else:
+                welcome_msg = (
+                    "<b>🏥 Вітаємо в Zav Hospital Bot!</b>\n\n"
+                    "Цей бот допомагає записатися на консультацію до лікаря.\n\n"
+                    "<b>📋 Доступні команди:</b>\n"
+                    "/doctors - Переглянути лікарів\n"
+                    "/book - Записатися на консультацію\n"
+                    "/bookother - Записати іншу особу\n"
+                    "/mybookings - Мої записи\n"
+                    "/status - Статус системи\n\n"
+                    "<b>ℹ️ Також можна подати запит на госпіталізацію:</b>\n"
+                    "Надішліть дані пацієнта:\n"
+                    "<code>Ім'я, Вік, Операція, Примітки</code>\n\n"
+                    "<b>Приклад:</b>\n"
+                    "<code>Іванов Петро, 45, Апендектомія, терміново</code>"
+                )
+
             result = send_telegram_reply(chat_id, welcome_msg)
-            logger.info(f"💬 Sent welcome response: {result}")
+            logger.info(f"💬 Sent {role} welcome response: {result}")
             return jsonify({"ok": True}), 200
 
         # Handle /help command (match /help, /help@botname)
@@ -1206,6 +1250,29 @@ def handle_telegram():
                        "📝 All data is stored and synced daily")
             result = send_telegram_reply(chat_id, help_msg)
             logger.info(f"💬 Sent help response: {result}")
+            return jsonify({"ok": True}), 200
+
+        # Handle /doctors command - list available doctors (patient-facing)
+        if text.lower().startswith("/doctors"):
+            logger.info("⚙️ Matched /doctors command")
+            _last_webhook_result["matched_handler"] = "doctors"
+
+            # Get all available doctors
+            doctors = db.query("SELECT * FROM doctors WHERE available = TRUE ORDER BY doctor_id")
+
+            if not doctors:
+                msg = "❌ На даний момент лікарі недоступні"
+            else:
+                msg = "<b>👨‍⚕️ Доступні лікарі</b>\n\n"
+                for doc in doctors:
+                    msg += f"<b>{doc['name']}</b>\n"
+                    msg += f"📋 Спеціалізація: {doc['specialization']}\n"
+                    msg += f"🆔 ID: <code>{doc['doctor_id']}</code>\n\n"
+
+                msg += "<i>Для запису на консультацію використовуйте команду /book</i>"
+
+            result = send_telegram_reply(chat_id, msg)
+            logger.info(f"💬 Sent doctors list: {result}")
             return jsonify({"ok": True}), 200
 
         # Handle /pending command - list pending patients (for department head)
