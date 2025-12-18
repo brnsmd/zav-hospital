@@ -715,13 +715,13 @@ def handle_telegram():
         webhook_log["response_sent"] = result
         webhook_log["completed_at"] = datetime.now().isoformat()
 
-        return jsonify({"ok": True, "webhook_log": webhook_log}), 200
+        return jsonify({"ok": True, "webhook_log": webhook_log}), 202
 
     except Exception as e:
         logger.error(f"❌ Webhook error: {e}", exc_info=True)
         webhook_log["error"] = str(e)
         webhook_log["completed_at"] = datetime.now().isoformat()
-        return jsonify({"ok": True, "webhook_log": webhook_log}), 200
+        return jsonify({"ok": True, "webhook_log": webhook_log}), 202
 
 # ==================== SYNC ENDPOINTS ====================
 
