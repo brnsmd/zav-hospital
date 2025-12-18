@@ -30,7 +30,7 @@ import os
 import json
 import logging
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from typing import Dict, Any, List, Optional
 from functools import wraps
 import base64
@@ -1016,7 +1016,6 @@ def create_consultation():
             return jsonify({"error": "Missing required fields"}), 400
 
         # Generate consultation ID
-        from datetime import datetime
         consultation_id = f"CON{int(datetime.now().timestamp())}"
 
         # Insert consultation
@@ -1165,8 +1164,6 @@ def generate_weekly_slots():
 
         if not start_date:
             return jsonify({"error": "start_date required"}), 400
-
-        from datetime import datetime, timedelta
 
         start = datetime.strptime(start_date, "%Y-%m-%d").date()
         created_count = 0
@@ -1512,7 +1509,6 @@ def handle_telegram():
             doctor_name = doctor[0]['name']
 
             # Get upcoming consultations
-            from datetime import datetime, timedelta
             today = datetime.now().date()
             week_later = today + timedelta(days=7)
 
@@ -1594,7 +1590,6 @@ def handle_telegram():
             # Get all doctors
             doctors = db.query("SELECT * FROM doctors ORDER BY doctor_id")
 
-            from datetime import datetime, timedelta
             today = datetime.now().date()
             week_later = today + timedelta(days=7)
 
