@@ -250,126 +250,7 @@ def require_token(f):
     return decorated_function
 
 # ==================== TELEGRAM WEBHOOK ENDPOINTS ====================
-
-@app.route("/webhook/telegram", methods=["POST"])
-def telegram_webhook():
-    """Handle incoming Telegram webhook messages."""
-    try:
-        data = request.get_json()
-
-        if not data:
-            return jsonify({"ok": False}), 400
-
-        # Extract message
-        message = data.get("message", {})
-        text = message.get("text", "")
-        user_id = message.get("from", {}).get("id")
-        chat_id = message.get("chat", {}).get("id")
-
-        if not text or not user_id:
-            return jsonify({"ok": True}), 200
-
-        logger.info(f"📨 Telegram message from {user_id}: {text[:50]}")
-
-        # Process command
-        response = process_telegram_command(text, user_id)
-
-        # Send response back
-        if response:
-            send_telegram_message(chat_id, response)
-
-        return jsonify({"ok": True}), 200
-
-    except Exception as e:
-        logger.error(f"Telegram webhook error: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-def send_telegram_message(chat_id: int, text: str, parse_mode: str = "HTML"):
-    """Send a message via Telegram bot."""
-    try:
-        url = f"{TELEGRAM_API_URL}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": parse_mode
-        }
-        response = requests.post(url, json=payload, timeout=10)
-        return response.status_code == 200
-    except Exception as e:
-        logger.error(f"Failed to send Telegram message: {e}")
-        return False
-
-def process_telegram_command(text: str, user_id: int) -> Optional[str]:
-    """Process a Telegram command and return response."""
-    text = text.lower().strip()
-
-    if text == "/start":
-        return """
-🏥 <b>Welcome to Zav Hospital Management</b>
-
-Available commands:
-/alerts - Show current alerts
-/beds - Check bed availability
-/discharge - List discharge-ready patients
-/patients - List all patients
-/help - Show this menu
-        """
-
-    elif text == "/alerts":
-        if db:
-            alerts = db.query("SELECT * FROM alerts WHERE resolved_at IS NULL LIMIT 5")
-            if alerts:
-                response = "<b>🚨 Active Alerts:</b>\n"
-                for alert in alerts:
-                    response += f"• {alert['message']}\n"
-                return response
-        return "No active alerts"
-
-    elif text == "/beds":
-        if db:
-            patients = db.query("SELECT COUNT(*) as count FROM patients WHERE status = 'active'")
-            if patients:
-                count = patients[0]['count']
-                return f"<b>🛏️  Bed Status:</b>\nCurrently {count} patients admitted"
-        return "Unable to fetch bed status"
-
-    elif text == "/discharge":
-        if db:
-            patients = db.query("""
-                SELECT patient_id, name FROM patients
-                WHERE discharge_date <= CURRENT_DATE
-                LIMIT 5
-            """)
-            if patients:
-                response = "<b>✅ Ready for Discharge:</b>\n"
-                for patient in patients:
-                    response += f"• {patient['patient_id']}: {patient['name']}\n"
-                return response
-        return "No patients ready for discharge"
-
-    elif text == "/patients":
-        if db:
-            patients = db.query("SELECT patient_id, name FROM patients LIMIT 10")
-            if patients:
-                response = "<b>👥 Patient List:</b>\n"
-                for patient in patients:
-                    response += f"• {patient['patient_id']}: {patient['name']}\n"
-                return response
-        return "No patients in system"
-
-    elif text == "/help":
-        return """
-<b>Commands:</b>
-/start - Welcome message
-/alerts - Show alerts
-/beds - Bed status
-/discharge - Discharge candidates
-/patients - Patient list
-/help - This menu
-        """
-
-    else:
-        return "❓ Unknown command. Type /help for available commands."
+# Main webhook handler is handle_telegram() below in TELEGRAM INTEGRATION section
 
 # ==================== REST API ENDPOINTS ====================
 
@@ -378,7 +259,7 @@ def health_check():
     """Health check endpoint."""
     status = {
         "status": "ok",
-        "version": "2.2-fixed",  # Removed early return blocking commands
+        "version": "2.3-single-handler",  # Removed duplicate webhook handler
         "timestamp": datetime.now().isoformat(),
         "database": "connected" if db else "disconnected"
     }
