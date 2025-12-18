@@ -692,6 +692,26 @@ def sync_google_sheets():
         "message": "Google Sheets sync will sync database to sheets"
     }), 202
 
+# ==================== DEBUG ENDPOINTS ====================
+
+@app.route("/debug/telegram-test", methods=["GET"])
+def debug_telegram():
+    """Test Telegram API connectivity."""
+    try:
+        # Test sending a message via Telegram API
+        test_response = requests.post(
+            f"{TELEGRAM_API_URL}/sendMessage",
+            json={"chat_id": 123456, "text": "🧪 Test from Railway"},
+            timeout=5
+        )
+        return jsonify({
+            "telegram_api_url": TELEGRAM_API_URL[:20] + "...",
+            "status_code": test_response.status_code,
+            "response": test_response.json() if test_response.status_code == 200 else test_response.text
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ==================== ERROR HANDLERS ====================
 
 @app.errorhandler(404)
