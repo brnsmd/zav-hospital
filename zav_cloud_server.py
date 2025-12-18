@@ -672,8 +672,8 @@ def handle_telegram():
         _last_webhook_result["text"] = text[:100]
         _last_webhook_result["handlers_checked"] = []
 
-        # Handle /start command
-        if text.lower() in ["/start"]:
+        # Handle /start command (match /start, /start@botname, /start anything)
+        if text.lower().startswith("/start"):
             logger.info("⚙️ Matched /start command")
             _last_webhook_result["matched_handler"] = "start"
             welcome_msg = ("<b>🏥 Welcome to Zav Hospital Bot</b>\n\n"
@@ -691,8 +691,8 @@ def handle_telegram():
             logger.info(f"💬 Sent welcome response: {result}")
             return jsonify({"ok": True}), 200
 
-        # Handle /help command (same as /start)
-        if text.lower() in ["/help"]:
+        # Handle /help command (match /help, /help@botname)
+        if text.lower().startswith("/help"):
             logger.info("⚙️ Matched /help command")
             _last_webhook_result["matched_handler"] = "help"
             help_msg = ("<b>🏥 Zav Hospital Bot - Help</b>\n\n"
@@ -705,6 +705,19 @@ def handle_telegram():
                        "📝 All data is stored and synced daily")
             result = send_telegram_reply(chat_id, help_msg)
             logger.info(f"💬 Sent help response: {result}")
+            return jsonify({"ok": True}), 200
+
+        # Handle /addpatient command without data - show help
+        if text.lower().startswith("/addpatient") and "," not in text:
+            logger.info("⚙️ Matched /addpatient without data")
+            _last_webhook_result["matched_handler"] = "addpatient_help"
+            help_msg = ("<b>📝 Add Patient</b>\n\n"
+                       "To submit a patient, send:\n"
+                       "<code>Name, Age, Operation, Details</code>\n\n"
+                       "<b>Example:</b>\n"
+                       "<code>Ahmed Ali, 45, Appendectomy, urgent</code>")
+            result = send_telegram_reply(chat_id, help_msg)
+            logger.info(f"💬 Sent addpatient help: {result}")
             return jsonify({"ok": True}), 200
 
         # Check for patient data pattern (Name, Age, Operation)
@@ -742,9 +755,9 @@ def handle_telegram():
                 logger.info(f"💬 Sent patient response: {result}")
                 return jsonify({"ok": True}), 200
 
-        # Handle /status or "status" command
+        # Handle /status or "status" command (match /status, /status@botname, status)
         _last_webhook_result["handlers_checked"].append("status")
-        if text.lower() in ["/status", "status"]:
+        if text.lower().startswith("/status") or text.lower() == "status":
             logger.info(f"⚙️ Matched status command")
             _last_webhook_result["matched_handler"] = "status"
             db_status = "✅" if db else "❌"
