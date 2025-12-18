@@ -102,9 +102,19 @@ class DatabaseManager:
                     discharge_date DATE,
                     current_stage INT DEFAULT 1,
                     status VARCHAR DEFAULT 'active',
+                    source VARCHAR DEFAULT 'manual',
+                    operation VARCHAR,
+                    age VARCHAR,
+                    notes TEXT,
                     created_at TIMESTAMP DEFAULT NOW(),
                     updated_at TIMESTAMP DEFAULT NOW()
                 );
+
+                -- Add columns to existing table if missing
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS source VARCHAR DEFAULT 'manual';
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS operation VARCHAR;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS age VARCHAR;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS notes TEXT;
 
                 CREATE TABLE IF NOT EXISTS equipment (
                     id SERIAL PRIMARY KEY,
@@ -259,7 +269,7 @@ def health_check():
     """Health check endpoint."""
     status = {
         "status": "ok",
-        "version": "2.3-single-handler",  # Removed duplicate webhook handler
+        "version": "2.4-patient-schema",  # Fixed patient table schema
         "timestamp": datetime.now().isoformat(),
         "database": "connected" if db else "disconnected"
     }
@@ -635,13 +645,13 @@ def handle_telegram():
                     cursor = db.get_connection().cursor()
                     pid = f"EX{chat_id}{int(datetime.now().timestamp())}"
                     cursor.execute(
-                        "INSERT INTO patients (patient_id, name, status, source, created_at, updated_at) "
-                        "VALUES (%s, %s, %s, %s, NOW(), NOW())",
-                        (pid, name, "pending", "telegram")
+                        "INSERT INTO patients (patient_id, name, age, operation, notes, status, source, created_at, updated_at) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())",
+                        (pid, name, age, op, notes, "pending", "telegram")
                     )
-                    logger.info(f"✅ Stored: {name}")
+                    logger.info(f"✅ Stored patient: {name}, {age}, {op}")
                 except Exception as e:
-                    logger.error(f"DB error: {e}")
+                    logger.error(f"❌ DB error storing patient: {e}")
 
                 reply = f"✅ <b>Patient Request Recorded</b>\n👤 {name}, Age {age}\n🏥 Operation: {op}\n📋 Notes: {notes}\n\n⏰ Review: 5 AM sync"
                 result = send_telegram_reply(chat_id, reply)
