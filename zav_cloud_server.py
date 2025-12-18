@@ -643,6 +643,147 @@ def update_doctor(doctor_db_id: int):
         logger.error(f"Error updating doctor: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ==================== OPERATION SLOT ENDPOINTS ====================
+
+@app.route("/api/operation-slots", methods=["GET"])
+def list_operation_slots():
+    """List operation slots with optional date filter."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        date_filter = request.args.get("date")
+        status_filter = request.args.get("status", "available")
+
+        if date_filter:
+            sql = "SELECT * FROM operation_slots WHERE date = %s AND status = %s ORDER BY date, time_start"
+            slots = db.query(sql, (date_filter, status_filter))
+        else:
+            sql = "SELECT * FROM operation_slots WHERE status = %s ORDER BY date, time_start LIMIT 50"
+            slots = db.query(sql, (status_filter,))
+
+        return jsonify(slots)
+    except Exception as e:
+        logger.error(f"Error listing operation slots: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/operation-slots/<slot_id>", methods=["GET"])
+def get_operation_slot(slot_id: str):
+    """Get operation slot details."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        slot = db.query("SELECT * FROM operation_slots WHERE slot_id = %s", (slot_id,))
+        if not slot:
+            return jsonify({"error": "Slot not found"}), 404
+
+        return jsonify(slot[0])
+    except Exception as e:
+        logger.error(f"Error getting operation slot: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/operation-slots", methods=["POST"])
+def create_operation_slot():
+    """Create a new operation slot."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        required_fields = ["slot_id", "date", "time_start", "time_end", "or_room"]
+
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        slot_id = db.insert("operation_slots", data)
+        return jsonify({"id": slot_id, "slot_id": data.get("slot_id")}), 201
+    except Exception as e:
+        logger.error(f"Error creating operation slot: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/operation-slots/<int:slot_db_id>/reserve", methods=["PUT"])
+def reserve_operation_slot(slot_db_id: int):
+    """Reserve an operation slot for a patient."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        if not data.get("patient_id"):
+            return jsonify({"error": "patient_id required"}), 400
+
+        update_data = {
+            "patient_id": data.get("patient_id"),
+            "doctor_id": data.get("doctor_id"),
+            "operation_type": data.get("operation_type"),
+            "status": "reserved"
+        }
+
+        success = db.update("operation_slots", slot_db_id, update_data)
+        return jsonify({"success": success})
+    except Exception as e:
+        logger.error(f"Error reserving operation slot: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/operation-slots/generate-weekly", methods=["POST"])
+def generate_weekly_slots():
+    """Generate operation slots for a week."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        start_date = data.get("start_date")  # YYYY-MM-DD
+
+        if not start_date:
+            return jsonify({"error": "start_date required"}), 400
+
+        from datetime import datetime, timedelta
+
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        created_count = 0
+
+        # Generate slots for 5 weekdays
+        for day_offset in range(5):
+            slot_date = start + timedelta(days=day_offset)
+
+            # OR-1 and OR-2: Morning (08:00-12:00)
+            for or_room in ["OR-1", "OR-2"]:
+                slot_id = f"SLOT_{slot_date.strftime('%Y%m%d')}_{or_room}_AM"
+                try:
+                    db.insert("operation_slots", {
+                        "slot_id": slot_id,
+                        "date": slot_date,
+                        "time_start": "08:00",
+                        "time_end": "12:00",
+                        "or_room": or_room,
+                        "status": "available"
+                    })
+                    created_count += 1
+                except:
+                    pass  # Slot already exists
+
+            # OR-3: Afternoon (13:00-17:00)
+            slot_id = f"SLOT_{slot_date.strftime('%Y%m%d')}_OR-3_PM"
+            try:
+                db.insert("operation_slots", {
+                    "slot_id": slot_id,
+                    "date": slot_date,
+                    "time_start": "13:00",
+                    "time_end": "17:00",
+                    "or_room": "OR-3",
+                    "status": "available"
+                })
+                created_count += 1
+            except:
+                pass  # Slot already exists
+
+        return jsonify({"created": created_count, "start_date": start_date}), 201
+    except Exception as e:
+        logger.error(f"Error generating weekly slots: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # ==================== TELEGRAM INTEGRATION ====================
 
 def send_telegram_reply(chat_id: int, text: str) -> bool:
