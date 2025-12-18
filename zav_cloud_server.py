@@ -37,8 +37,8 @@ import base64
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg
+from psycopg.rows import dict_row
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -72,9 +72,9 @@ class DatabaseManager:
     def get_connection(self):
         """Get a database connection."""
         try:
-            conn = psycopg2.connect(self.connection_string)
+            conn = psycopg.connect(self.connection_string)
             return conn
-        except psycopg2.Error as e:
+        except Exception as e:
             logger.error(f"Database connection error: {e}")
             raise
 
@@ -159,8 +159,9 @@ class DatabaseManager:
     def query(self, sql: str, params: tuple = ()) -> List[Dict]:
         """Execute a SELECT query and return results."""
         try:
-            conn = self.get_connection()
-            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            conn = psycopg.connect(self.connection_string)
+            conn.row_factory = dict_row
+            cursor = conn.cursor()
             cursor.execute(sql, params)
             results = cursor.fetchall()
             cursor.close()

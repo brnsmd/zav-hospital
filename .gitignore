@@ -83,3 +83,50 @@ Thumbs.db
 node_modules/
 dist/
 .next/
+
+# Zav project files (separate from cloud deployment)
+zav_phase_*.py
+zav_alert_monitor.py
+zav_authorization.py
+zav_cli_interface.py
+zav_persistence.py
+zav_validation.py
+test_*.py
+
+# Documentation (keep only deployment docs)
+ACTIVATE_ZAV.md
+CLAUDE_*.md
+COMPREHENSIVE_ANALYSIS.md
+CYBERINTERN_MCP_PROMPT.md
+DOCUMENTATION_*.md
+EXECUTIVE_SUMMARY.md
+EXPORT_CHECKLIST.md
+FINAL_*.md
+HANDOFF_*.md
+INDEX.md
+MCP_*.md
+MODELS_REFERENCE.md
+PARALLEL_*.md
+PHASE_*.md
+PRODUCTION_VERIFICATION.md
+PROJECT_PROGRESS.md
+QUICK_*.md
+READY_FOR_HOME.md
+RESOURCE_INDEX.md
+ROADMAP_*.md
+SESSION_*.md
+SETUP_COMPLETE.md
+ULTRATHINK_SUMMARY.md
+ZAV_*.md
+COMPREHENSIVE_ANALYSIS.md
+
+# Directories
+brood/
+cyberintern_mcp/
+docs/
+telegram_bot/
+
+# Conversation logs
+conversation-*.txt
+*-caveat-*.txt
+*-perfect-*.txt
