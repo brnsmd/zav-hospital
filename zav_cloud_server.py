@@ -209,9 +209,60 @@ class DatabaseManager:
             cursor.close()
             logger.info("✅ Database schema initialized")
 
+            # Seed initial doctors if table is empty
+            self._seed_doctors()
+
         except Exception as e:
             logger.error(f"Error initializing schema: {e}")
             raise
+
+    def _seed_doctors(self):
+        """Seed initial doctors if table is empty."""
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Check if doctors table is empty
+            cursor.execute("SELECT COUNT(*) FROM doctors")
+            count = cursor.fetchone()[0]
+
+            if count == 0:
+                logger.info("Seeding initial doctors...")
+                doctors = [
+                    {
+                        "doctor_id": "DOC001",
+                        "name": "Др. Петрова Олена",
+                        "specialization": "Травматолог-ортопед",
+                        "available": True,
+                        "max_patients": 12,
+                        "current_load": 0
+                    },
+                    {
+                        "doctor_id": "DOC002",
+                        "name": "Др. Іванов Петро",
+                        "specialization": "Хірург",
+                        "available": True,
+                        "max_patients": 10,
+                        "current_load": 0
+                    },
+                    {
+                        "doctor_id": "DOC003",
+                        "name": "Др. Коваленко Марія",
+                        "specialization": "Травматолог",
+                        "available": True,
+                        "max_patients": 12,
+                        "current_load": 0
+                    }
+                ]
+
+                for doctor in doctors:
+                    self.insert("doctors", doctor)
+
+                logger.info(f"✅ Seeded {len(doctors)} doctors")
+
+            cursor.close()
+        except Exception as e:
+            logger.error(f"Error seeding doctors: {e}")
 
     def query(self, sql: str, params: tuple = ()) -> List[Dict]:
         """Execute a SELECT query and return results."""
@@ -526,6 +577,70 @@ def create_alert():
         return jsonify({"id": alert_id}), 201
     except Exception as e:
         logger.error(f"Error creating alert: {e}")
+        return jsonify({"error": str(e)}), 500
+
+# ==================== DOCTOR MANAGEMENT ENDPOINTS ====================
+
+@app.route("/api/doctors", methods=["GET"])
+def list_doctors():
+    """List all doctors."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        doctors = db.query("SELECT * FROM doctors ORDER BY name")
+        return jsonify(doctors)
+    except Exception as e:
+        logger.error(f"Error listing doctors: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/doctors/<doctor_id>", methods=["GET"])
+def get_doctor(doctor_id: str):
+    """Get doctor details."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        doctor = db.query("SELECT * FROM doctors WHERE doctor_id = %s", (doctor_id,))
+        if not doctor:
+            return jsonify({"error": "Doctor not found"}), 404
+
+        return jsonify(doctor[0])
+    except Exception as e:
+        logger.error(f"Error getting doctor: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/doctors", methods=["POST"])
+def create_doctor():
+    """Create a new doctor."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        required_fields = ["doctor_id", "name"]
+
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        doctor_id = db.insert("doctors", data)
+        return jsonify({"id": doctor_id, "doctor_id": data.get("doctor_id")}), 201
+    except Exception as e:
+        logger.error(f"Error creating doctor: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/doctors/<int:doctor_db_id>", methods=["PUT"])
+def update_doctor(doctor_db_id: int):
+    """Update doctor information."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        success = db.update("doctors", doctor_db_id, data)
+        return jsonify({"success": success})
+    except Exception as e:
+        logger.error(f"Error updating doctor: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ==================== TELEGRAM INTEGRATION ====================
