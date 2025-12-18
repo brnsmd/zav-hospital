@@ -655,21 +655,22 @@ def handle_telegram():
         logger.info(f"📋 Raw request: {raw_data[:500]}")
         _last_webhook_result["raw_data"] = raw_data[:200]
 
-        # Store webhook call in database for debugging
-        try:
-            cursor = db.get_connection().cursor()
-            cursor.execute(
-                "INSERT INTO webhook_log (received_at, raw_data) VALUES (NOW(), %s)",
-                (raw_data[:500],)
-            )
-            logger.info("📝 Logged webhook to database")
-        except Exception as e:
-            logger.warning(f"Could not log webhook: {e}")
-
         data = request.get_json()
         if not data:
             logger.warning("⚠️ No JSON data received")
             return jsonify({"ok": True}), 200
+
+        # TEMPORARY: Send immediate confirmation that webhook was called
+        try:
+            chat_id_temp = data.get("message", {}).get("chat", {}).get("id")
+            if chat_id_temp:
+                requests.post(
+                    f"{TELEGRAM_API_URL}/sendMessage",
+                    json={"chat_id": chat_id_temp, "text": f"🔔 Webhook received your message!"},
+                    timeout=3
+                )
+        except:
+            pass
 
         logger.debug(f"📋 Payload keys: {list(data.keys())}")
 
