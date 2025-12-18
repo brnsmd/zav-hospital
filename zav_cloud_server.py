@@ -115,6 +115,13 @@ class DatabaseManager:
                 ALTER TABLE patients ADD COLUMN IF NOT EXISTS operation VARCHAR;
                 ALTER TABLE patients ADD COLUMN IF NOT EXISTS age VARCHAR;
                 ALTER TABLE patients ADD COLUMN IF NOT EXISTS notes TEXT;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS approved_by VARCHAR;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS assigned_doctor_id VARCHAR;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS assigned_doctor_name VARCHAR;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS hospitalization_date DATE;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+                ALTER TABLE patients ADD COLUMN IF NOT EXISTS external_doctor_chat_id BIGINT;
 
                 CREATE TABLE IF NOT EXISTS equipment (
                     id SERIAL PRIMARY KEY,
@@ -168,6 +175,34 @@ class DatabaseManager:
                     id SERIAL PRIMARY KEY,
                     received_at TIMESTAMP DEFAULT NOW(),
                     raw_data TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS doctors (
+                    id SERIAL PRIMARY KEY,
+                    doctor_id VARCHAR UNIQUE NOT NULL,
+                    name VARCHAR NOT NULL,
+                    specialization VARCHAR,
+                    telegram_id BIGINT,
+                    available BOOLEAN DEFAULT TRUE,
+                    max_patients INT DEFAULT 12,
+                    current_load INT DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT NOW()
+                );
+
+                CREATE TABLE IF NOT EXISTS operation_slots (
+                    id SERIAL PRIMARY KEY,
+                    slot_id VARCHAR UNIQUE NOT NULL,
+                    date DATE NOT NULL,
+                    time_start TIME NOT NULL,
+                    time_end TIME NOT NULL,
+                    or_room VARCHAR NOT NULL,
+                    doctor_id VARCHAR,
+                    patient_id VARCHAR,
+                    operation_type VARCHAR,
+                    status VARCHAR DEFAULT 'available',
+                    notes TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    updated_at TIMESTAMP DEFAULT NOW()
                 );
             """)
 
@@ -269,7 +304,7 @@ def health_check():
     """Health check endpoint."""
     status = {
         "status": "ok",
-        "version": "2.4-patient-schema",  # Fixed patient table schema
+        "version": "2.5-approval-workflow",  # Added approval workflow schema
         "timestamp": datetime.now().isoformat(),
         "database": "connected" if db else "disconnected"
     }
