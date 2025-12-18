@@ -1920,6 +1920,58 @@ def check_tables():
         logger.error(f"Error checking tables: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/debug/test-insert", methods=["POST"])
+def test_insert():
+    """Test direct database insert with full error details."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        # Try direct SQL insert
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        test_data = {
+            "consultation_id": "TEST123",
+            "patient_telegram_id": 999999,
+            "patient_name": "Test Patient",
+            "patient_phone": "+380501234567",
+            "doctor_id": "DOC001",
+            "date": "2025-12-28",
+            "time_start": "10:00",
+            "status": "pending"
+        }
+
+        columns = ", ".join(test_data.keys())
+        placeholders = ", ".join(["%s"] * len(test_data))
+        values = tuple(test_data.values())
+
+        sql = f"INSERT INTO consultations ({columns}) VALUES ({placeholders}) RETURNING id"
+
+        logger.info(f"Test SQL: {sql}")
+        logger.info(f"Test values: {values}")
+
+        cursor.execute(sql, values)
+        result = cursor.fetchone()
+        logger.info(f"Test result: {result}")
+
+        result_id = result[0] if result else None
+        cursor.close()
+
+        # Verify insertion
+        check = db.query("SELECT * FROM consultations WHERE consultation_id = %s", ("TEST123",))
+
+        return jsonify({
+            "insert_id": result_id,
+            "sql": sql,
+            "values": values,
+            "verification": check
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Test insert error: {e}", exc_info=True)
+        return jsonify({"error": str(e), "type": type(e).__name__}), 500
+
 
 # ==================== ERROR HANDLERS ====================
 
