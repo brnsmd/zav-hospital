@@ -16,16 +16,16 @@ Use these tools to gather patient data:
 ### 2. Zav Cloud (Railway) API
 ```bash
 # Today's consultations
-curl -s https://zav-production.up.railway.app/api/consultations?date=today
+curl -s https://web-production-d80eb.up.railway.app/api/consultations?date=today
 
 # All doctors
-curl -s https://zav-production.up.railway.app/api/doctors
+curl -s https://web-production-d80eb.up.railway.app/api/doctors
 
 # Pending external requests
-curl -s https://zav-production.up.railway.app/api/patients/pending
+curl -s https://web-production-d80eb.up.railway.app/api/patients/pending
 
 # System stats
-curl -s https://zav-production.up.railway.app/stats
+curl -s https://web-production-d80eb.up.railway.app/stats
 ```
 
 ### 3. Compliance Checks

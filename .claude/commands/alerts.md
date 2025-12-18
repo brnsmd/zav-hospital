@@ -16,13 +16,13 @@ Make these API calls:
 
 ```bash
 # Pending external patient requests
-curl -s https://zav-production.up.railway.app/api/patients/pending
+curl -s https://web-production-d80eb.up.railway.app/api/patients/pending
 
 # Today's consultations (check for gaps)
-curl -s https://zav-production.up.railway.app/api/consultations?date=today
+curl -s https://web-production-d80eb.up.railway.app/api/consultations?date=today
 
 # System health
-curl -s https://zav-production.up.railway.app/health
+curl -s https://web-production-d80eb.up.railway.app/health
 ```
 
 ### 3. Documentation Compliance Check
