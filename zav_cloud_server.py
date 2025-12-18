@@ -450,6 +450,111 @@ def update_patient(patient_id: str):
         logger.error(f"Error updating patient: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/patients/pending", methods=["GET"])
+def list_pending_patients():
+    """List all pending external patients."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        patients = db.query("""
+            SELECT * FROM patients
+            WHERE status = 'pending' AND source = 'telegram'
+            ORDER BY created_at DESC
+        """)
+        return jsonify(patients)
+    except Exception as e:
+        logger.error(f"Error listing pending patients: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/patients/<patient_id>/approve", methods=["PUT"])
+def approve_patient(patient_id: str):
+    """Approve a pending patient with scheduling information."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        required_fields = ["hospitalization_date", "assigned_doctor_id", "operation_slot_id"]
+
+        if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields: hospitalization_date, assigned_doctor_id, operation_slot_id"}), 400
+
+        # Get patient
+        patient = db.query("SELECT * FROM patients WHERE patient_id = %s", (patient_id,))
+        if not patient:
+            return jsonify({"error": "Patient not found"}), 404
+
+        if patient[0]["status"] != "pending":
+            return jsonify({"error": "Patient is not pending"}), 400
+
+        # Get doctor name
+        doctor = db.query("SELECT name FROM doctors WHERE doctor_id = %s", (data["assigned_doctor_id"],))
+        doctor_name = doctor[0]["name"] if doctor else None
+
+        # Reserve operation slot
+        slot = db.query("SELECT id FROM operation_slots WHERE slot_id = %s", (data["operation_slot_id"],))
+        if slot:
+            db.update("operation_slots", slot[0]["id"], {
+                "patient_id": patient_id,
+                "doctor_id": data["assigned_doctor_id"],
+                "operation_type": patient[0].get("operation"),
+                "status": "reserved"
+            })
+
+        # Update patient
+        update_data = {
+            "status": "approved",
+            "approved_at": datetime.now(),
+            "approved_by": data.get("approved_by", "admin"),
+            "assigned_doctor_id": data["assigned_doctor_id"],
+            "assigned_doctor_name": doctor_name,
+            "hospitalization_date": data["hospitalization_date"]
+        }
+
+        success = db.update("patients", patient[0]["id"], update_data)
+
+        logger.info(f"✅ Approved patient {patient_id} for {data['hospitalization_date']}")
+
+        return jsonify({"success": success, "patient_id": patient_id})
+    except Exception as e:
+        logger.error(f"Error approving patient: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/patients/<patient_id>/reject", methods=["PUT"])
+def reject_patient(patient_id: str):
+    """Reject a pending patient request."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        data = request.get_json()
+        if not data.get("rejection_reason"):
+            return jsonify({"error": "rejection_reason required"}), 400
+
+        # Get patient
+        patient = db.query("SELECT * FROM patients WHERE patient_id = %s", (patient_id,))
+        if not patient:
+            return jsonify({"error": "Patient not found"}), 404
+
+        if patient[0]["status"] != "pending":
+            return jsonify({"error": "Patient is not pending"}), 400
+
+        # Update patient
+        update_data = {
+            "status": "rejected",
+            "rejection_reason": data["rejection_reason"]
+        }
+
+        success = db.update("patients", patient[0]["id"], update_data)
+
+        logger.info(f"❌ Rejected patient {patient_id}: {data['rejection_reason']}")
+
+        return jsonify({"success": success, "patient_id": patient_id})
+    except Exception as e:
+        logger.error(f"Error rejecting patient: {e}")
+        return jsonify({"error": str(e)}), 500
+
 # ==================== EQUIPMENT ENDPOINTS ====================
 
 @app.route("/api/equipment", methods=["GET"])
