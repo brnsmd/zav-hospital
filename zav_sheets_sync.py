@@ -497,18 +497,18 @@ class GoogleSheetsSync:
         try:
             from datetime import date, timedelta
             today = date.today()
-            week_end = today + timedelta(days=7)
+            week_start = today - timedelta(days=today.weekday())  # Monday of current week
+            week_end = week_start + timedelta(days=4)  # Friday
 
-            # Get all approved operations for the week
+            # Get all approved operations for the week (Mon-Fri only)
             week_ops = self.db.query(
-                "SELECT p.*, d.name as doctor_name, s.or_room, s.date, s.time_start "
+                "SELECT p.name, p.operation, s.date, s.time_start "
                 "FROM patients p "
-                "LEFT JOIN doctors d ON p.assigned_doctor_id = d.doctor_id "
                 "LEFT JOIN operation_slots s ON p.id = s.patient_id "
                 "WHERE p.status IN ('approved', 'hospitalized') "
                 "AND DATE(p.hospitalization_date) BETWEEN %s AND %s "
                 "ORDER BY DATE(p.hospitalization_date), s.time_start",
-                (today, week_end)
+                (week_start, week_end)
             )
 
             ws = self._get_or_create_worksheet("Тижневий План")
@@ -516,48 +516,47 @@ class GoogleSheetsSync:
                 logger.warning("Could not access weekly operations worksheet")
                 return
 
-            # Weekly summary headers
-            headers = [
-                "Дата",
-                "День",
-                "Операцій",
-                "Операційна залі",
-                "Лікарні",
-                "Пацієнти"
-            ]
+            # Header row with days of week
+            day_names = ["Пн", "Вт", "Ср", "Чт", "Пт"]
+            headers = ["Поле"] + day_names
 
             ws.clear()
             ws.append_row(headers)
 
-            # Group by date
-            ops_by_date = {}
+            # Group operations by day of week
+            ops_by_day = {i: [] for i in range(5)}  # Monday=0 to Friday=4
             for op in week_ops:
-                op_date = op.get("date", today).isoformat() if op.get("date") else today.isoformat()
-                if op_date not in ops_by_date:
-                    ops_by_date[op_date] = []
-                ops_by_date[op_date].append(op)
+                op_date = op.get("date", today)
+                if isinstance(op_date, str):
+                    op_date = date.fromisoformat(op_date)
 
-            # Add rows
-            day_names = {0: "Пн", 1: "Вт", 2: "Ср", 3: "Чт", 4: "Пт", 5: "Сб", 6: "Нд"}
-            for op_date in sorted(ops_by_date.keys()):
-                ops = ops_by_date[op_date]
-                date_obj = date.fromisoformat(op_date)
-                day_name = day_names[date_obj.weekday()]
-                or_rooms = set(op.get("or_room", "") for op in ops if op.get("or_room"))
-                doctors = set(op.get("doctor_name", "") for op in ops if op.get("doctor_name"))
-                patients = ", ".join(op.get("name", "") for op in ops)
+                day_of_week = op_date.weekday()
+                if 0 <= day_of_week <= 4:  # Only Mon-Fri
+                    time_str = op.get("time_start", "").strftime("%H:%M") if hasattr(op.get("time_start"), "strftime") else str(op.get("time_start", ""))
+                    ops_by_day[day_of_week].append({
+                        "name": op.get("name", ""),
+                        "operation": op.get("operation", ""),
+                        "time": time_str
+                    })
 
-                row = [
-                    op_date,
-                    day_name,
-                    str(len(ops)),
-                    ", ".join(or_rooms),
-                    ", ".join(doctors),
-                    patients
-                ]
-                ws.append_row(row)
+            # Format and add rows: each row = (Family name / Operation / Time) for each day
+            # Get max operations for any single day
+            max_ops = max(len(ops) for ops in ops_by_day.values()) if any(ops_by_day.values()) else 0
 
-            logger.info(f"✅ Synced {len(ops_by_date)} days to weekly plan")
+            for op_idx in range(max_ops):
+                row = [""]  # First column (row label)
+                for day_idx in range(5):
+                    if op_idx < len(ops_by_day[day_idx]):
+                        op = ops_by_day[day_idx][op_idx]
+                        cell_text = f"{op['name']}\n{op['operation']}\n{op['time']}"
+                    else:
+                        cell_text = ""
+                    row.append(cell_text)
+
+                if any(row[1:]):  # Only add row if there's data
+                    ws.append_row(row)
+
+            logger.info(f"✅ Synced {len(week_ops)} weekly operations (Mon-Fri)")
         except Exception as e:
             logger.error(f"Error syncing weekly operations: {e}")
 
