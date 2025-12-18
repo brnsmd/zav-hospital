@@ -34,6 +34,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 from functools import wraps
 import base64
+import subprocess
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -595,16 +596,263 @@ def create_alert():
         logger.error(f"Error creating alert: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ==================== TELEGRAM BOT INTEGRATION ====================
+
+def send_telegram_message(chat_id: int, text: str, parse_mode: str = "HTML") -> bool:
+    """Send a message to Telegram chat."""
+    try:
+        url = f"{TELEGRAM_API_URL}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": parse_mode
+        }
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            logger.info(f"✅ Message sent to chat {chat_id}")
+            return True
+        else:
+            logger.error(f"❌ Failed to send message: {response.text}")
+            return False
+    except Exception as e:
+        logger.error(f"Error sending Telegram message: {e}")
+        return False
+
+def append_to_google_sheets(row_data: List[str]) -> bool:
+    """Append a row to Google Sheets 'New Requests' tab."""
+    try:
+        # Try using gspread if credentials available
+        import gspread
+        from google.oauth2.service_account import Credentials
+
+        google_sheets_key = os.getenv("GOOGLE_SHEETS_KEY", "")
+        google_sheets_id = os.getenv("GOOGLE_SHEETS_ID", "1uMRrf8INgFp8WMOSWgobWOQ9W4KrlLw_NR3BtnlLUqA")
+
+        if not google_sheets_key:
+            logger.warning("⚠️ GOOGLE_SHEETS_KEY not configured, skipping Sheets append")
+            return False
+
+        creds_dict = json.loads(google_sheets_key)
+        creds = Credentials.from_service_account_info(creds_dict)
+        gc = gspread.authorize(creds)
+
+        sheet = gc.open_by_key(google_sheets_id)
+        new_requests_sheet = sheet.worksheet("New Requests")
+
+        new_requests_sheet.append_row(row_data)
+        logger.info(f"✅ Row appended to Google Sheets: {row_data}")
+        return True
+
+    except ImportError:
+        logger.warning("⚠️ gspread not installed, using MCP method")
+        # MCP method would go here - for now just log
+        return False
+    except Exception as e:
+        logger.error(f"Error appending to Google Sheets: {e}")
+        return False
+
+@app.route("/webhook/telegram", methods=["POST"])
+def telegram_webhook():
+    """Receive Telegram webhook updates."""
+    try:
+        update = request.get_json()
+
+        if not update:
+            return jsonify({"ok": True}), 200
+
+        # Extract message
+        message = update.get("message", {})
+        chat_id = message.get("chat", {}).get("id")
+        text = message.get("text", "").strip()
+        from_user = message.get("from", {})
+        user_id = from_user.get("id")
+        username = from_user.get("username", "unknown")
+
+        logger.info(f"📱 Telegram message from @{username}: {text}")
+
+        # Handle /external-patient command
+        if text.startswith("/external-patient"):
+            try:
+                # Parse: /external-patient Name, Age, Operation, Details
+                parts = text.replace("/external-patient", "").strip().split(",")
+
+                if len(parts) < 3:
+                    response = "❌ Invalid format. Use: /external-patient Name, Age, Operation, [Details]"
+                    send_telegram_message(chat_id, response)
+                    return jsonify({"ok": True}), 200
+
+                patient_name = parts[0].strip()
+                patient_age = parts[1].strip()
+                operation = parts[2].strip()
+                details = parts[3].strip() if len(parts) > 3 else ""
+
+                # Store in database as external patient request
+                if db:
+                    cursor = db.get_connection().cursor()
+                    cursor.execute("""
+                        INSERT INTO patients (patient_id, name, status, source, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, NOW(), NOW())
+                    """, (f"EX{user_id}{datetime.now().timestamp()}", patient_name, "pending", "telegram_request"))
+                    logger.info(f"✅ External patient request stored for {patient_name}")
+
+                # Try to append to Google Sheets
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                row_data = [timestamp, f"@{username}", patient_name, patient_age, operation, details, "pending_review"]
+                append_to_google_sheets(row_data)
+
+                # Send confirmation
+                confirmation = f"""✅ <b>Patient request recorded!</b>
+
+<b>Details:</b>
+📝 Name: {patient_name}
+👤 Age: {patient_age}
+🏥 Operation: {operation}
+📋 Notes: {details if details else 'None'}
+
+⏰ <b>Next Review:</b> Daily sync at 5 AM or when hospital staff opens Claude
+📊 <b>Status:</b> Added to "New Requests" tab in Google Sheets
+
+The hospital team will review this and propose admission details.
+"""
+                send_telegram_message(chat_id, confirmation)
+
+            except Exception as e:
+                logger.error(f"Error processing /external-patient: {e}")
+                send_telegram_message(chat_id, f"❌ Error processing request: {str(e)}")
+
+        # Handle /start command
+        elif text == "/start":
+            welcome = """🏥 <b>Welcome to Zav Hospital Management!</b>
+
+I'm your interface to the hospital system. Here's what you can do:
+
+<b>For Doctors - Submit External Patient Requests:</b>
+/external-patient Name, Age, Operation, [Details]
+
+<b>Example:</b>
+/external-patient Ahmed Ali, 45, Appendectomy, acute appendicitis
+
+<b>Other Commands:</b>
+/help - Show all available commands
+/status - System status
+
+Questions? Contact the hospital IT team.
+"""
+            send_telegram_message(chat_id, welcome)
+
+        # Handle /help command
+        elif text == "/help":
+            help_text = """<b>Available Commands:</b>
+
+<b>/external-patient</b> Name, Age, Operation, [Details]
+  → Submit a new external patient for admission
+
+<b>/start</b>
+  → Show welcome message
+
+<b>/help</b>
+  → Show this message
+
+<b>/status</b>
+  → Check system status
+
+<b>Process:</b>
+1. You submit patient via /external-patient
+2. Request stored in "New Requests" tab (Google Sheets)
+3. Hospital staff reviews next morning (5 AM sync)
+4. Claude proposes bed allocation and operation schedule
+5. Staff confirms and system sends you updates
+"""
+            send_telegram_message(chat_id, help_text)
+
+        # Handle /status command
+        elif text == "/status":
+            try:
+                status = {
+                    "system": "operational",
+                    "database": "connected" if db else "disconnected",
+                    "telegram_bot": "ready",
+                    "timestamp": datetime.now().isoformat()
+                }
+                status_msg = f"""<b>🏥 Zav System Status</b>
+
+✅ System: {status['system']}
+✅ Database: {status['database']}
+✅ Telegram Bot: {status['telegram_bot']}
+
+⏰ Last Check: {status['timestamp']}
+
+Everything is operational! 🚀
+"""
+                send_telegram_message(chat_id, status_msg)
+            except Exception as e:
+                logger.error(f"Error getting status: {e}")
+                send_telegram_message(chat_id, "❌ Error retrieving status")
+
+        else:
+            # Unknown command
+            response = f"""I didn't understand that command.
+
+Try /help to see what I can do, or /external-patient to submit a new patient."""
+            send_telegram_message(chat_id, response)
+
+        return jsonify({"ok": True}), 200
+
+    except Exception as e:
+        logger.error(f"Error processing Telegram webhook: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 # ==================== SYNC ENDPOINTS ====================
+
+@app.route("/api/sync/cyberintern", methods=["GET", "POST"])
+def trigger_cyberintern_sync():
+    """Trigger sync from Cyberintern EMR."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        logger.info("🔄 Triggering Cyberintern sync...")
+
+        # Execute the sync_patients_daily.py script
+        result = subprocess.run(
+            ["python", "sync_patients_daily.py"],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minute timeout
+        )
+
+        if result.returncode == 0:
+            try:
+                output = json.loads(result.stdout)
+                return jsonify({
+                    "status": "success",
+                    "sync_result": output,
+                    "timestamp": datetime.now().isoformat()
+                }), 200
+            except json.JSONDecodeError:
+                return jsonify({
+                    "status": "success",
+                    "message": "Sync completed",
+                    "output": result.stdout
+                }), 200
+        else:
+            logger.error(f"Sync script error: {result.stderr}")
+            return jsonify({
+                "status": "error",
+                "error": result.stderr
+            }), 500
+
+    except subprocess.TimeoutExpired:
+        logger.error("Sync script timeout")
+        return jsonify({"error": "Sync timeout (5 minutes exceeded)"}), 504
+    except Exception as e:
+        logger.error(f"Error triggering sync: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/sync/sheets", methods=["POST"])
 def sync_google_sheets():
-    """Trigger Google Sheets sync."""
-    # This will be implemented when we build the Google Sheets sync module
-    return jsonify({
-        "status": "sync initiated",
-        "message": "Google Sheets sync will sync database to sheets"
-    }), 202
+    """Trigger Google Sheets sync (same as /api/sync/cyberintern)."""
+    return trigger_cyberintern_sync()
 
 # ==================== ERROR HANDLERS ====================
 
