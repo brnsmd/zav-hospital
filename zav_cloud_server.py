@@ -378,7 +378,7 @@ def health_check():
     """Health check endpoint."""
     status = {
         "status": "ok",
-        "version": "2.1-debug",  # Track deployment version
+        "version": "2.2-fixed",  # Removed early return blocking commands
         "timestamp": datetime.now().isoformat(),
         "database": "connected" if db else "disconnected"
     }
@@ -660,29 +660,6 @@ def handle_telegram():
         if not data:
             logger.warning("⚠️ No JSON data received")
             return jsonify({"ok": True}), 200
-
-        # TEMPORARY: Send immediate confirmation and return debug info
-        debug_info = {"chat_id": None, "api_url": None, "conf_status": None, "conf_response": None}
-        try:
-            chat_id_temp = data.get("message", {}).get("chat", {}).get("id")
-            debug_info["chat_id"] = chat_id_temp
-            debug_info["api_url"] = TELEGRAM_API_URL[:50] if TELEGRAM_API_URL else "EMPTY"
-            logger.info(f"🔔 Attempting confirmation to chat_id: {chat_id_temp}")
-            if chat_id_temp:
-                conf_resp = requests.post(
-                    f"{TELEGRAM_API_URL}/sendMessage",
-                    json={"chat_id": chat_id_temp, "text": f"🔔 Webhook received! Text: {data.get('message', {}).get('text', '')[:30]}"},
-                    timeout=5
-                )
-                debug_info["conf_status"] = conf_resp.status_code
-                debug_info["conf_response"] = conf_resp.text[:200]
-                logger.info(f"🔔 Confirmation: {conf_resp.status_code}")
-        except Exception as e:
-            debug_info["error"] = str(e)
-            logger.error(f"🔔 Confirmation failed: {e}")
-
-        # Return debug info for testing (remove in production)
-        return jsonify({"ok": True, "debug": debug_info}), 200
 
         logger.debug(f"📋 Payload keys: {list(data.keys())}")
 
