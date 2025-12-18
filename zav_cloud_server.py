@@ -633,7 +633,9 @@ def handle_telegram():
 
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
+        logger.debug(f"Checking patterns for: {text}")
         if "," in text and len(text.split(",")) >= 3:
+            logger.debug("Matched patient data pattern")
             # Remove /addpatient if present
             data_text = text.replace("/addpatient", "").strip()
             parts = data_text.split(",")
@@ -664,12 +666,14 @@ def handle_telegram():
 
         # Handle /status or "status" command
         if text.lower() in ["/status", "status"]:
+            logger.info(f"Matched status command")
             db_status = "✅" if db else "❌"
             result = send_telegram_reply(chat_id, f"<b>🏥 System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅\n\n<b>Usage:</b> Send patient info:\nName, Age, Operation, Details")
             logger.info(f"💬 Sent status response: {result}")
             return jsonify({"ok": True}), 200
 
         # Default response
+        logger.info(f"Sending default response to {chat_id}")
         result = send_telegram_reply(chat_id,
             "<b>🏥 Zav Hospital Bot</b>\n\n"
             "<b>Send patient info:</b>\n"
