@@ -1,0 +1,36 @@
+# Zav Cloud Server - Railway Deployment
+# Python 3.10+
+
+# Core frameworks
+Flask==3.0.0
+Flask-CORS==4.0.0
+gunicorn==21.2.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# HTTP requests
+requests==2.31.0
+
+# API clients
+google-auth==2.25.2
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.100.0
+gspread==5.11.3
+
+# Telegram bot
+python-telegram-bot==20.3
+
+# Utilities
+python-dotenv==1.0.0
+Werkzeug==3.0.1
+
+# Data processing
+pandas==2.1.3
+
+# Async support
+aiohttp==3.9.1
+
+# Logging and monitoring
+python-json-logger==2.0.7
