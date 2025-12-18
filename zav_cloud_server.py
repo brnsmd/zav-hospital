@@ -40,6 +40,14 @@ from flask_cors import CORS
 import psycopg
 from psycopg.rows import dict_row
 
+# Import Google Sheets sync
+try:
+    from zav_sheets_sync import GoogleSheetsSync
+except ImportError:
+    logger_temp = logging.getLogger("ZavServer")
+    logger_temp.warning("⚠️  GoogleSheetsSync not available. Install gspread: pip install gspread")
+    GoogleSheetsSync = None
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ZavServer")
@@ -53,11 +61,15 @@ CORS(app)
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 GOOGLE_SHEETS_KEY = os.getenv("GOOGLE_SHEETS_KEY", "")
+GOOGLE_SHEETS_URL = os.getenv("GOOGLE_SHEETS_URL", "https://docs.google.com/spreadsheets/d/1uMRrf8INgFp8WMOSWgobWOQ9W4KrlLw_NR3BtnlLUqA/edit")
 PORT = int(os.getenv("PORT", 8000))
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # Telegram API base URL
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+
+# Global Google Sheets sync instance
+sheets_sync = None
 
 # ==================== DATABASE MANAGEMENT ====================
 
@@ -331,6 +343,20 @@ if DATABASE_URL:
 else:
     logger.warning("⚠️  DATABASE_URL not set - running in demo mode")
 
+# Initialize Google Sheets sync if available
+if db and GoogleSheetsSync and GOOGLE_SHEETS_URL:
+    try:
+        sheets_sync = GoogleSheetsSync(db, GOOGLE_SHEETS_URL)
+        logger.info(f"✅ Google Sheets sync initialized: {GOOGLE_SHEETS_URL}")
+    except Exception as e:
+        logger.warning(f"⚠️  Google Sheets sync not available: {e}")
+        sheets_sync = None
+else:
+    if not GoogleSheetsSync:
+        logger.warning("⚠️  GoogleSheetsSync module not available")
+    elif not GOOGLE_SHEETS_URL:
+        logger.warning("⚠️  GOOGLE_SHEETS_URL not configured")
+
 # ==================== AUTHENTICATION ====================
 
 def require_token(f):
@@ -530,6 +556,14 @@ def approve_patient(patient_id: str):
             send_telegram_reply(patient[0]["external_doctor_chat_id"], notify_msg)
             logger.info(f"📨 Sent approval notification to {patient[0]['external_doctor_chat_id']}")
 
+        # Sync to Google Sheets
+        if sheets_sync:
+            try:
+                sheets_sync.sync_to_sheets()
+                logger.info("📊 Synced to Google Sheets after approval")
+            except Exception as sync_err:
+                logger.warning(f"⚠️  Google Sheets sync failed: {sync_err}")
+
         return jsonify({"success": success, "patient_id": patient_id, "sync_date": data["hospitalization_date"]})
     except Exception as e:
         logger.error(f"Error approving patient: {e}")
@@ -574,6 +608,14 @@ def reject_patient(patient_id: str):
             )
             send_telegram_reply(patient[0]["external_doctor_chat_id"], notify_msg)
             logger.info(f"📨 Sent rejection notification to {patient[0]['external_doctor_chat_id']}")
+
+        # Sync to Google Sheets
+        if sheets_sync:
+            try:
+                sheets_sync.sync_to_sheets()
+                logger.info("📊 Synced to Google Sheets after rejection")
+            except Exception as sync_err:
+                logger.warning(f"⚠️  Google Sheets sync failed: {sync_err}")
 
         return jsonify({"success": success, "patient_id": patient_id})
     except Exception as e:

@@ -112,6 +112,10 @@ class GoogleSheetsSync:
             self._sync_consultations()
             self._sync_alerts()
 
+            # Sync operation schedules
+            self._sync_daily_operations()
+            self._sync_weekly_operations()
+
             logger.info("✅ Sync complete: Database → Google Sheets")
             return True
         except Exception as e:
@@ -422,6 +426,140 @@ class GoogleSheetsSync:
         except Exception as e:
             logger.error(f"Error getting worksheet {title}: {e}")
             return None
+
+    # ==================== DAILY OPERATIONS ====================
+
+    def _sync_daily_operations(self):
+        """Sync today's approved operations to 'Щоденний План' (Daily Plan) sheet."""
+        try:
+            from datetime import date
+            today = date.today().isoformat()
+
+            # Get approved patients scheduled for today
+            approved_today = self.db.query(
+                "SELECT p.*, d.name as doctor_name, s.or_room, s.time_start "
+                "FROM patients p "
+                "LEFT JOIN doctors d ON p.assigned_doctor_id = d.doctor_id "
+                "LEFT JOIN operation_slots s ON p.id = s.patient_id "
+                "WHERE p.status = 'approved' AND DATE(p.hospitalization_date) = %s "
+                "ORDER BY s.time_start",
+                (today,)
+            )
+
+            ws = self._get_or_create_worksheet("Щоденний План")
+            if not ws:
+                logger.warning("Could not access daily operations worksheet")
+                return
+
+            # Header row with Ukrainian columns
+            headers = [
+                "#",
+                "Відділення",
+                "Прізвище ім'я по батькові",
+                "Кімната",
+                "Вік",
+                "№ історії хвороби",
+                "Діагноз",
+                "Операція",
+                "Операційна",
+                "Черга",
+                "Тривалість операції",
+                "Операційна бригада"
+            ]
+
+            ws.clear()
+            ws.append_row(headers)
+
+            # Add patient data rows
+            for idx, patient in enumerate(approved_today, 1):
+                row = [
+                    str(idx),
+                    patient.get("department", "N/A"),
+                    patient.get("name", ""),
+                    patient.get("or_room", ""),
+                    str(patient.get("age", "")),
+                    patient.get("patient_id", ""),
+                    patient.get("diagnosis", ""),
+                    patient.get("operation", ""),
+                    patient.get("or_room", ""),
+                    str(idx),
+                    "120 min",  # Default, would come from slot duration
+                    patient.get("doctor_name", "")
+                ]
+                ws.append_row(row)
+
+            logger.info(f"✅ Synced {len(approved_today)} operations to daily plan")
+        except Exception as e:
+            logger.error(f"Error syncing daily operations: {e}")
+
+    def _sync_weekly_operations(self):
+        """Sync weekly operation schedule to 'Тижневий План' (Weekly Plan) sheet."""
+        try:
+            from datetime import date, timedelta
+            today = date.today()
+            week_end = today + timedelta(days=7)
+
+            # Get all approved operations for the week
+            week_ops = self.db.query(
+                "SELECT p.*, d.name as doctor_name, s.or_room, s.date, s.time_start "
+                "FROM patients p "
+                "LEFT JOIN doctors d ON p.assigned_doctor_id = d.doctor_id "
+                "LEFT JOIN operation_slots s ON p.id = s.patient_id "
+                "WHERE p.status IN ('approved', 'hospitalized') "
+                "AND DATE(p.hospitalization_date) BETWEEN %s AND %s "
+                "ORDER BY DATE(p.hospitalization_date), s.time_start",
+                (today, week_end)
+            )
+
+            ws = self._get_or_create_worksheet("Тижневий План")
+            if not ws:
+                logger.warning("Could not access weekly operations worksheet")
+                return
+
+            # Weekly summary headers
+            headers = [
+                "Дата",
+                "День",
+                "Операцій",
+                "Операційна залі",
+                "Лікарні",
+                "Пацієнти"
+            ]
+
+            ws.clear()
+            ws.append_row(headers)
+
+            # Group by date
+            ops_by_date = {}
+            for op in week_ops:
+                op_date = op.get("date", today).isoformat() if op.get("date") else today.isoformat()
+                if op_date not in ops_by_date:
+                    ops_by_date[op_date] = []
+                ops_by_date[op_date].append(op)
+
+            # Add rows
+            day_names = {0: "Пн", 1: "Вт", 2: "Ср", 3: "Чт", 4: "Пт", 5: "Сб", 6: "Нд"}
+            for op_date in sorted(ops_by_date.keys()):
+                ops = ops_by_date[op_date]
+                date_obj = date.fromisoformat(op_date)
+                day_name = day_names[date_obj.weekday()]
+                or_rooms = set(op.get("or_room", "") for op in ops if op.get("or_room"))
+                doctors = set(op.get("doctor_name", "") for op in ops if op.get("doctor_name"))
+                patients = ", ".join(op.get("name", "") for op in ops)
+
+                row = [
+                    op_date,
+                    day_name,
+                    str(len(ops)),
+                    ", ".join(or_rooms),
+                    ", ".join(doctors),
+                    patients
+                ]
+                ws.append_row(row)
+
+            logger.info(f"✅ Synced {len(ops_by_date)} days to weekly plan")
+        except Exception as e:
+            logger.error(f"Error syncing weekly operations: {e}")
 
 
 # ==================== UTILITY FUNCTIONS ====================
