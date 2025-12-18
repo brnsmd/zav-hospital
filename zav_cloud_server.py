@@ -806,19 +806,34 @@ def debug_last_webhook():
 def debug_telegram():
     """Test Telegram API connectivity."""
     try:
+        logger.info(f"Testing Telegram API with token: {TELEGRAM_BOT_TOKEN[:20]}...")
+        logger.info(f"Token is empty: {not TELEGRAM_BOT_TOKEN}")
+
         # Test sending a message via Telegram API
-        test_response = requests.post(
-            f"{TELEGRAM_API_URL}/sendMessage",
-            json={"chat_id": 123456, "text": "🧪 Test from Railway"},
-            timeout=5
-        )
+        test_url = f"{TELEGRAM_API_URL}/sendMessage"
+        test_payload = {"chat_id": 227230975, "text": "🧪 Test message from Railway"}
+
+        logger.info(f"Sending test to {test_url[:50]}...")
+        test_response = requests.post(test_url, json=test_payload, timeout=5)
+
+        logger.info(f"Response status: {test_response.status_code}")
+        response_data = test_response.json()
+        logger.info(f"Response: {response_data}")
+
         return jsonify({
-            "telegram_api_url": TELEGRAM_API_URL[:20] + "...",
+            "token_set": bool(TELEGRAM_BOT_TOKEN),
+            "token_preview": TELEGRAM_BOT_TOKEN[:20] + "..." if TELEGRAM_BOT_TOKEN else "EMPTY",
+            "telegram_api_url": TELEGRAM_API_URL[:50] + "...",
             "status_code": test_response.status_code,
-            "response": test_response.json() if test_response.status_code == 200 else test_response.text
+            "response": response_data
         }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Test failed: {e}", exc_info=True)
+        return jsonify({
+            "error": str(e),
+            "token_set": bool(TELEGRAM_BOT_TOKEN),
+            "error_type": type(e).__name__
+        }), 500
 
 @app.route("/debug/webhook-test", methods=["POST"])
 def debug_webhook_test():
