@@ -602,10 +602,15 @@ def send_telegram_reply(chat_id: int, text: str) -> bool:
     try:
         url = f"{TELEGRAM_API_URL}/sendMessage"
         payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
-        resp = requests.post(url, json=payload, timeout=5)
-        return resp.status_code == 200
+        resp = requests.post(url, json=payload, timeout=10)
+        if resp.status_code == 200:
+            logger.info(f"✅ Sent to {chat_id}")
+            return True
+        else:
+            logger.error(f"❌ Send failed: {resp.status_code} - {resp.text}")
+            return False
     except Exception as e:
-        logger.error(f"Telegram send failed: {e}")
+        logger.error(f"❌ Telegram error: {e}")
         return False
 
 @app.route("/webhook/telegram", methods=["POST"])
