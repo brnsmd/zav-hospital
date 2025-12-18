@@ -617,23 +617,31 @@ def send_telegram_reply(chat_id: int, text: str) -> bool:
 def handle_telegram():
     """Telegram webhook endpoint."""
     try:
+        # Log webhook receipt immediately
+        logger.info("⚙️ WEBHOOK RECEIVED - Processing Telegram message")
+
         data = request.get_json()
+        logger.info(f"⚙️ Raw data keys: {list(data.keys()) if data else 'None'}")
+
         if not data or "message" not in data:
+            logger.warning(f"⚙️ No message in payload")
             return jsonify({"ok": True}), 200
 
         msg = data["message"]
         chat_id = msg.get("chat", {}).get("id")
         text = msg.get("text", "").strip()
 
+        logger.info(f"⚙️ Extracted - chat_id: {chat_id}, text: '{text[:50]}'")
+
         if not chat_id or not text:
-            logger.warning(f"⚠️ Missing chat_id or text: {data}")
+            logger.warning(f"⚙️ Missing chat_id ({chat_id}) or text ({text})")
             return jsonify({"ok": True}), 200
 
         logger.info(f"📱 Telegram msg from {chat_id}: {text[:50]}")
 
         # Check for patient data pattern (Name, Age, Operation)
         # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
-        logger.debug(f"Checking patterns for: {text}")
+        logger.info(f"⚙️ Checking patterns for: {text}")
         if "," in text and len(text.split(",")) >= 3:
             logger.debug("Matched patient data pattern")
             # Remove /addpatient if present
@@ -666,27 +674,30 @@ def handle_telegram():
 
         # Handle /status or "status" command
         if text.lower() in ["/status", "status"]:
-            logger.info(f"Matched status command")
+            logger.info(f"⚙️ Matched status command")
             db_status = "✅" if db else "❌"
-            result = send_telegram_reply(chat_id, f"<b>🏥 System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅\n\n<b>Usage:</b> Send patient info:\nName, Age, Operation, Details")
-            logger.info(f"💬 Sent status response: {result}")
+            status_msg = f"<b>🏥 System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅\n\n<b>Usage:</b> Send patient info:\nName, Age, Operation, Details"
+            logger.info(f"⚙️ Calling send_telegram_reply for status")
+            result = send_telegram_reply(chat_id, status_msg)
+            logger.info(f"⚙️ Status response result: {result}")
             return jsonify({"ok": True}), 200
 
         # Default response
-        logger.info(f"Sending default response to {chat_id}")
-        result = send_telegram_reply(chat_id,
-            "<b>🏥 Zav Hospital Bot</b>\n\n"
-            "<b>Send patient info:</b>\n"
-            "Ahmed Ali, 45, Appendectomy, notes\n\n"
-            "<b>Or use:</b>\n"
-            "/status - System status\n"
-            "/start - Welcome")
-        logger.info(f"💬 Sent default response: {result}")
+        logger.info(f"⚙️ No patterns matched, sending default response to {chat_id}")
+        default_msg = ("<b>🏥 Zav Hospital Bot</b>\n\n"
+                       "<b>Send patient info:</b>\n"
+                       "Ahmed Ali, 45, Appendectomy, notes\n\n"
+                       "<b>Or use:</b>\n"
+                       "/status - System status\n"
+                       "/start - Welcome")
+        logger.info(f"⚙️ Calling send_telegram_reply for default message")
+        result = send_telegram_reply(chat_id, default_msg)
+        logger.info(f"⚙️ Default response result: {result}")
 
         return jsonify({"ok": True}), 200
 
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        logger.error(f"❌ Webhook error: {e}", exc_info=True)
         return jsonify({"ok": True}), 200
 
 # ==================== SYNC ENDPOINTS ====================
