@@ -1006,6 +1006,26 @@ def handle_telegram():
             logger.info(f"💬 Sent help response: {result}")
             return jsonify({"ok": True}), 200
 
+        # Handle /pending command - list pending patients (for department head)
+        if text.lower().startswith("/pending"):
+            logger.info("⚙️ Matched /pending command")
+            _last_webhook_result["matched_handler"] = "pending"
+            pending = db.query("SELECT * FROM patients WHERE status = 'pending' AND source = 'telegram' ORDER BY created_at DESC")
+
+            if not pending:
+                msg = "✅ No pending external patient requests"
+            else:
+                msg = "<b>📋 Pending Patient Requests</b>\n\n"
+                for p in pending:
+                    msg += f"ID: <code>{p['patient_id']}</code>\n"
+                    msg += f"👤 {p['name']}, Вік: {p['age']}\n"
+                    msg += f"🏥 Операція: {p['operation']}\n"
+                    msg += f"📝 Примітки: {p['notes']}\n\n"
+
+            result = send_telegram_reply(chat_id, msg)
+            logger.info(f"💬 Sent pending list: {result}")
+            return jsonify({"ok": True}), 200
+
         # Handle /addpatient command without data - show help
         if text.lower().startswith("/addpatient") and "," not in text:
             logger.info("⚙️ Matched /addpatient without data")
@@ -1053,6 +1073,87 @@ def handle_telegram():
                 result = send_telegram_reply(chat_id, reply)
                 logger.info(f"💬 Sent patient response: {result}")
                 return jsonify({"ok": True}), 200
+
+        # Handle /approve command - approve patient with scheduling
+        if text.lower().startswith("/approve "):
+            logger.info("⚙️ Matched /approve command")
+            _last_webhook_result["matched_handler"] = "approve"
+            parts = text.split()
+            if len(parts) < 4:
+                msg = "❌ Format: /approve <patient_id> <date> <doctor_id>"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            patient_id = parts[1]
+            approval_date = parts[2]
+            doctor_id = parts[3]
+
+            # Get pending slots for that date
+            slots = db.query("SELECT * FROM operation_slots WHERE date = %s AND status = 'available' LIMIT 5", (approval_date,))
+
+            if not slots:
+                msg = f"❌ No available slots for {approval_date}"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            # Use first available slot
+            slot_id = slots[0]['slot_id']
+
+            # Call API to approve
+            try:
+                approve_resp = requests.put(
+                    f"http://127.0.0.1:{PORT}/api/patients/{patient_id}/approve",
+                    json={
+                        "hospitalization_date": approval_date,
+                        "assigned_doctor_id": doctor_id,
+                        "operation_slot_id": slot_id
+                    },
+                    timeout=5
+                )
+
+                if approve_resp.status_code == 200:
+                    msg = f"✅ Patient {patient_id} approved!\n📅 Date: {approval_date}\n🏥 Slot: {slot_id}"
+                else:
+                    msg = f"❌ Error approving: {approve_resp.text[:100]}"
+
+            except Exception as e:
+                logger.error(f"Error calling approve API: {e}")
+                msg = f"❌ Error: {str(e)}"
+
+            result = send_telegram_reply(chat_id, msg)
+            return jsonify({"ok": True}), 200
+
+        # Handle /reject command
+        if text.lower().startswith("/reject "):
+            logger.info("⚙️ Matched /reject command")
+            _last_webhook_result["matched_handler"] = "reject"
+            parts = text.split(None, 2)
+            if len(parts) < 3:
+                msg = "❌ Format: /reject <patient_id> <reason>"
+                result = send_telegram_reply(chat_id, msg)
+                return jsonify({"ok": True}), 200
+
+            patient_id = parts[1]
+            reason = parts[2]
+
+            try:
+                reject_resp = requests.put(
+                    f"http://127.0.0.1:{PORT}/api/patients/{patient_id}/reject",
+                    json={"rejection_reason": reason},
+                    timeout=5
+                )
+
+                if reject_resp.status_code == 200:
+                    msg = f"✅ Patient {patient_id} rejected\n❌ Reason: {reason}"
+                else:
+                    msg = f"❌ Error rejecting: {reject_resp.text[:100]}"
+
+            except Exception as e:
+                logger.error(f"Error calling reject API: {e}")
+                msg = f"❌ Error: {str(e)}"
+
+            result = send_telegram_reply(chat_id, msg)
+            return jsonify({"ok": True}), 200
 
         # Handle /status or "status" command (match /status, /status@botname, status)
         _last_webhook_result["handlers_checked"].append("status")
