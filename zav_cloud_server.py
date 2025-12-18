@@ -1526,6 +1526,116 @@ def debug_webhook_test():
         debug_log.append(f"ERROR: {str(e)}")
         return jsonify({"ok": False, "error": str(e), "debug": debug_log}), 500
 
+@app.route("/debug/migrate-doctors", methods=["POST"])
+def migrate_doctors():
+    """Migrate existing doctors to correct specializations and Boss account."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        results = []
+
+        # Delete all existing doctors
+        cursor.execute("DELETE FROM doctors")
+        results.append("Deleted all existing doctors")
+
+        # Insert new doctors with correct data
+        new_doctors = [
+            {
+                "doctor_id": "DOC001",
+                "name": "Др. Іванов Петро",
+                "specialization": "Травматолог-ортопед",
+                "available": True,
+                "is_approved": True,
+                "max_patients": 12,
+                "current_load": 0
+            },
+            {
+                "doctor_id": "DOC002",
+                "name": "Др. Коваленко Марія",
+                "specialization": "Хірург",
+                "available": True,
+                "is_approved": True,
+                "max_patients": 10,
+                "current_load": 0
+            },
+            {
+                "doctor_id": "DOC003",
+                "name": "Др. Цапенко Георгій",
+                "specialization": "Ортопед-травматолог, Завідувач відділення",
+                "telegram_chat_id": 227230975,
+                "telegram_username": "htsapenko",
+                "available": True,
+                "is_approved": True,
+                "max_patients": 12,
+                "current_load": 0
+            }
+        ]
+
+        for doctor in new_doctors:
+            db.insert("doctors", doctor)
+            results.append(f"Inserted {doctor['name']} - {doctor['specialization']}")
+
+        cursor.close()
+
+        return jsonify({
+            "success": True,
+            "results": results,
+            "doctors": db.query("SELECT * FROM doctors ORDER BY doctor_id")
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error migrating doctors: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/debug/check-tables", methods=["GET"])
+def check_tables():
+    """Check if new tables were created."""
+    try:
+        if not db:
+            return jsonify({"error": "Database not available"}), 503
+
+        conn = db.get_connection()
+        cursor = conn.cursor()
+
+        # Check each table
+        tables = {
+            "boss_accounts": "SELECT COUNT(*) FROM boss_accounts",
+            "doctor_availability": "SELECT COUNT(*) FROM doctor_availability",
+            "consultations": "SELECT COUNT(*) FROM consultations"
+        }
+
+        results = {}
+        for table_name, query in tables.items():
+            try:
+                cursor.execute(query)
+                count = cursor.fetchone()[0]
+                results[table_name] = {"exists": True, "count": count}
+            except Exception as e:
+                results[table_name] = {"exists": False, "error": str(e)}
+
+        # Check boss_accounts content
+        try:
+            cursor.execute("SELECT * FROM boss_accounts")
+            boss_accounts = cursor.fetchall()
+            results["boss_accounts"]["data"] = [
+                {"id": row[0], "username": row[1], "chat_id": row[2], "name": row[3]}
+                for row in boss_accounts
+            ]
+        except:
+            pass
+
+        cursor.close()
+
+        return jsonify(results), 200
+
+    except Exception as e:
+        logger.error(f"Error checking tables: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 # ==================== ERROR HANDLERS ====================
 
