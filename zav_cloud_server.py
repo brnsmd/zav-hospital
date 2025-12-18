@@ -623,42 +623,52 @@ def handle_telegram():
         if not chat_id or not text:
             return jsonify({"ok": True}), 200
 
-        logger.info(f"Telegram: {text[:50]}")
+        logger.info(f"📱 Telegram msg: {text[:50]}")
 
-        # Handle /addpatient command (format: /addpatient Name, Age, Operation, Details)
-        if text.startswith("/addpatient"):
-            parts = text.replace("/addpatient", "").strip().split(",")
+        # Check for patient data pattern (Name, Age, Operation)
+        # Matches: /addpatient Ahmed, 45, Appendectomy OR Ahmed, 45, Appendectomy
+        if "," in text and len(text.split(",")) >= 3:
+            # Remove /addpatient if present
+            data_text = text.replace("/addpatient", "").strip()
+            parts = data_text.split(",")
 
-            if len(parts) < 3:
-                send_telegram_reply(chat_id,
-                    "❌ Format: /addpatient Name, Age, Operation, Details")
+            if len(parts) >= 3:
+                name = parts[0].strip()
+                age = parts[1].strip()
+                op = parts[2].strip()
+                notes = parts[3].strip() if len(parts) > 3 else "-"
+
+                # Store in database
+                try:
+                    cursor = db.get_connection().cursor()
+                    pid = f"EX{chat_id}{int(datetime.now().timestamp())}"
+                    cursor.execute(
+                        "INSERT INTO patients (patient_id, name, status, source, created_at, updated_at) "
+                        "VALUES (%s, %s, %s, %s, NOW(), NOW())",
+                        (pid, name, "pending", "telegram")
+                    )
+                    logger.info(f"✅ Stored: {name}")
+                except Exception as e:
+                    logger.error(f"DB error: {e}")
+
+                reply = f"✅ <b>Patient Request Recorded</b>\n👤 {name}, Age {age}\n🏥 Operation: {op}\n📋 Notes: {notes}\n\n⏰ Review: 5 AM sync"
+                send_telegram_reply(chat_id, reply)
                 return jsonify({"ok": True}), 200
 
-            name = parts[0].strip()
-            age = parts[1].strip()
-            op = parts[2].strip()
-            notes = parts[3].strip() if len(parts) > 3 else "-"
-
-            # Store in database
-            try:
-                cursor = db.get_connection().cursor()
-                pid = f"EX{chat_id}{int(datetime.now().timestamp())}"
-                cursor.execute(
-                    "INSERT INTO patients (patient_id, name, status, source, created_at, updated_at) "
-                    "VALUES (%s, %s, %s, %s, NOW(), NOW())",
-                    (pid, name, "pending", "telegram")
-                )
-                logger.info(f"✅ Stored external patient: {name}")
-            except Exception as e:
-                logger.error(f"DB error: {e}")
-
-            reply = f"✅ <b>Request Recorded</b>\n{name}, Age {age}\nOperation: {op}\nNotes: {notes}\n\n⏰ Review: 5 AM daily sync"
-            send_telegram_reply(chat_id, reply)
-
-        # Handle /status command
-        elif text == "/status":
+        # Handle /status or "status" command
+        if text.lower() in ["/status", "status"]:
             db_status = "✅" if db else "❌"
-            send_telegram_reply(chat_id, f"<b>System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅")
+            send_telegram_reply(chat_id, f"<b>🏥 System Status</b>\nDatabase: {db_status}\nBot: ✅\nAPI: ✅\n\n<b>Usage:</b> Send patient info:\nName, Age, Operation, Details")
+            return jsonify({"ok": True}), 200
+
+        # Default response
+        send_telegram_reply(chat_id,
+            "<b>🏥 Zav Hospital Bot</b>\n\n"
+            "<b>Send patient info:</b>\n"
+            "Ahmed Ali, 45, Appendectomy, notes\n\n"
+            "<b>Or use:</b>\n"
+            "/status - System status\n"
+            "/start - Welcome")
 
         return jsonify({"ok": True}), 200
 
