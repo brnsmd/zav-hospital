@@ -18,16 +18,19 @@ Show this menu:
 | Command | Description |
 |---------|-------------|
 | `/zav` | Show this menu |
-| `/alerts` | Everything needing attention (prioritized) |
 | `/daily` | Full daily briefing report |
+| `/alerts` | Everything needing attention (prioritized) |
+| `/patient <name>` | Quick patient lookup by name or ID |
+| `/ops` | Today's operations and OR status |
+| `/beds` | Current bed occupancy |
 
 ### Quick Actions
 
 | Action | How |
 |--------|-----|
-| Show doctors | Ask: "show me the doctors" |
-| Show patients | Ask: "list patients" or use CyberIntern MCP |
-| Check consultations | Ask: "today's consultations" |
+| Find patient | `/patient Іванов` or `/patient EX123` |
+| Today's surgeries | `/ops` |
+| Bed availability | `/beds` |
 | Pending approvals | Ask: "pending requests" |
 
 ### Data Sources
