@@ -305,11 +305,17 @@ Show only relevant shortcuts for current state.
 - Service checks run in sequence with visual feedback
 - User can press 'q' to quit during startup
 
-### Sprint 2: Power-On Polish
-1. [ ] Add service check animation
-2. [ ] Add spinner for each service
-3. [ ] Implement progress bar during data fetch
-4. [ ] Add fade transition (if using tachyonfx)
+### Sprint 2: Power-On Polish ✅ COMPLETE 2026-01-25
+1. [x] Add service check animation ✅ (ServiceCheckState enum in splash.rs)
+2. [x] Add spinner for each service ✅ (Throbber widget for Checking state)
+3. [x] Implement progress bar during data fetch ✅ (Gauge widget in splash.rs)
+4. [x] Add fade transition (tachyonfx) ✅ (fade_to black, 500ms QuadOut easing)
+
+**Sprint 2 Details:**
+- Added tachyonfx 0.22 for ratatui 0.30 compatibility
+- Created `StartupPhase::Transitioning` phase
+- Fade-to-black effect (500ms) runs after "Ready!" message
+- User can still press 'q' to quit during transition
 
 ### Sprint 3: Wards Tab ✅ COMPLETE 2026-01-25
 1. [x] Create wards.rs module ✅

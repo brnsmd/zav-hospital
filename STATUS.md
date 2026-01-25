@@ -551,6 +551,12 @@ See: `/var/home/htsapenko/Projects/Zav/BOSS_TUI_MASTERPLAN.md`
 - [x] **Service checks** - Boss API, n8n, Airtable with animated status
 - [x] **Progress bar** - Shows loading progress during startup
 
+### Phase 2: Power-On Polish (Fade Transition) ✅ COMPLETE 2026-01-25
+- [x] **tachyonfx 0.22** - Effects library for ratatui 0.30
+- [x] **StartupPhase::Transitioning** - New phase for fade effect
+- [x] **Fade-to-black transition** - 500ms QuadOut easing after "Ready!"
+- [x] **Graceful quit** - Can press 'q' during transition
+
 ### Sprint 3: Wards Tab ✅ COMPLETE
 - [x] Created wards.rs module
 - [x] Added Tab::Wards (key '9', index 8)
