@@ -1,1031 +1,597 @@
-# Zav Project Status - CyberIntern Parallel Development
+# Zav Project Status
 
-**Last Updated**: December 18, 2025 (Session 4 - ALL PHASES COMPLETE!)
-**Status**: ✅ PRODUCTION READY - All 10 Zav tools implemented and tested
-**Current Phase**: Phase 3B - Complete (All optimization tools implemented)
-**System Status**: ✅ COMPLETE - 117/117 tests passing, ready for deployment
+**Updated:** 2026-01-25
+**Status:** ✅ PRODUCTION READY
 
 ---
 
-## STREAM 1: CYBERINTERN APP (Python/FastAPI)
+## System Health
 
-### Backend Status
-- [x] FastAPI framework setup
-- [x] SQLite database with 12 tables
-- [x] JWT authentication system
-- [x] 50+ API endpoints implemented
-- [x] Request/response middleware
-- [x] Error handling layer
-- [x] Test data seeding (18 patients)
-- [ ] AlertGenerator dependency fix (QUICK FIX NEEDED)
-- [ ] Health endpoint implementation (MINOR)
-
-**Coverage**: 95% Complete
-
-### Core Routes
-- [x] `/api/auth/` - Authentication (login, refresh, logout)
-- [x] `/api/patients/` - Patient CRUD + medical records
-- [x] `/api/diaries/` - Diary management + templates
-- [x] `/api/prescriptions/` - Prescription CRUD
-- [x] `/api/labs/` - Lab results management
-- [x] `/api/alerts/` - Alert system (needs AlertGenerator wiring)
-- [x] `/api/search/` - Global search
-- [x] `/api/doctors/` - Doctor management
-- [x] `/api/operations/` - Operation scheduling
-- [x] `/api/sicklists/` - Medical conclusion tracking
-
-### Database
-- [x] Schema created with 12 tables
-- [x] Foreign key relationships defined
-- [x] Test data loaded: 18 patients
-- [x] Realistic scenarios for testing
-
-**Test Patients**:
-- 1-10: EMR-synced patients
-- 99999: Legacy test patient
-- 300001-300008: Comprehensive scenarios
-
-### Frontend Status
-- [x] React + Vite setup
-- [x] Tailwind CSS styling
-- [x] Login modal working
-- [x] Patient list display
-- [x] Patient details tabs
-- [x] Diary workspace
-- [x] Alert dashboard
-- [x] JWT authentication in API calls
-
-**Frontend Port**: 5173
-**Backend Port**: 8082
-**Status**: Fully functional for display
+| Component | Status | URL |
+|-----------|--------|-----|
+| Airtable | ✅ Active | appv5BwoWyRhT6Lcr |
+| n8n | ✅ Active | localhost:5678 |
+| ngrok | ✅ Active | kristeen-rootlike-unflirtatiously.ngrok-free.dev |
+| Slack | ✅ Active | Zav Hospital workspace |
+| Boss API | ✅ Active | localhost:8083 (now with API key auth) |
+| Boss TUI | ✅ Active | ~/Projects/boss-tui |
+| Zav Cloud | ✅ Active | zav-production.up.railway.app |
 
 ---
 
-## STREAM 2: CYBERINTERN MCP (Python)
+## Recent Changes (2026-01-24)
 
-### Phase 1: Foundation ✅ COMPLETE
+### Phase 1: Security & Infrastructure ✅
+- [x] **API key auth for Boss API** - X-API-KEY header validation (optional, set BOSS_API_KEY to enable)
+- [x] **SQLite daily backups** - Script + systemd timer at `cyberintern-boss/scripts/backup-db.sh`
+- [x] **Removed secrets from docs** - Redacted JWT tokens from N8N_WORKFLOW_MANAGEMENT.md
+- [x] **Connection pooling** - Added pool_max_idle_per_host(10), pool_idle_timeout(60s) to Boss TUI
+- [x] **Retry logic** - Exponential backoff (100ms→200ms→400ms), 3 retries for network errors
 
-**Built & Tested**:
-- [x] Project structure created
-- [x] Configuration system (config.py)
-- [x] CyberIntern API client wrapper (cyberintern_client.py)
-  - JWT authentication with token refresh
-  - All API endpoints wrapped
-  - Error handling and retry logic
-- [x] MCP Server skeleton (mcp_server.py)
-  - 10 tools registered with JSON schemas
-  - Tool routing system
-  - Placeholder implementations
+### Phase 2: Slack Commands ✅
+- [x] **`/vlk`** - VLK patients status (critical/warning counts)
+- [x] **`/stats`** - Quick system statistics (patient counts, by ward)
+- [x] **`/surgery`** - Link to surgery scheduling form
+- [x] **Combined Morning Briefing** - Batches VLK + Overstay + Morning Report at 7 AM
+- [x] **Slack Manifest API** - Automated slash command configuration via API
 
-**Test Results**:
-- ✅ API client authenticates successfully
-- ✅ Health check works
-- ✅ All 50+ API endpoints are callable
-- ✅ MCP server loads all 10 tools
+### Files Modified
+- `cyberintern-boss/src/main.py` - API key auth middleware
+- `boss-tui/src/api/boss.rs` - Retry logic + auth headers
+- `boss-tui/src/app.rs` - Connection pooling
+- `boss-tui/src/config.rs` - BOSS_API_KEY env var
+- `docs/N8N_WORKFLOW_MANAGEMENT.md` - Removed exposed secrets
 
-**Status**: Phase 1 Complete (40% overall)
-
-### Phase 2: Core Tools ✅ COMPLETE
-
-- [x] Tool 1: get_doctor_info
-- [x] Tool 2: get_doctor_diaries
-- [x] Tool 3: get_patient_record (most complex - aggregates multiple endpoints)
-- [x] Tool 4: get_patient_prescriptions
-- [x] Tool 5: get_lab_results
-- [x] Tool 6: create_diary_entry (POST operation)
-- [x] Tool 7: create_prescription (POST operation)
-
-### Phase 3: Advanced Tools ✅ COMPLETE
-
-- [x] Tool 8: search_cyberintern (multi-type search)
-- [x] Tool 9: get_alerts (severity/status filtering)
-- [x] Tool 10: analyze_patient_data (AI-powered analysis with trends/risks/recommendations)
-
-### Phase 4: Testing & Integration ✅ COMPLETE
-
-- [x] Integration testing for all 10 tools
-- [x] Error handling validation
-- [x] Performance testing
-- [x] Documentation completion
-
-**Overall Coverage**: 100% (All tools implemented and tested, ready for Zav integration)
-
-### Integration Points
-- [ ] API authentication (JWT token management)
-- [ ] Client wrapper for all endpoints
-- [ ] Error handling for failed API calls
-- [ ] Response transformation to tool format
-- [ ] Tool input validation
-- [ ] Integration tests
+### Files Created
+- `cyberintern-boss/scripts/backup-db.sh` - Backup script
+- `~/.config/systemd/user/boss-backup.service` - Backup service
+- `~/.config/systemd/user/boss-backup.timer` - Daily backup timer (enabled)
 
 ---
 
-## HANDOFF POINTS STATUS
+## Active Workflows (n8n)
 
-### Handoff 1: API Specification
-**File**: `/var/home/htsapenko/Projects/cyberintern/MCP_HANDOFF_PROMPT.md`
-**Status**: ✅ COMPLETE
-**Content**: Full API contract with all endpoints, parameters, responses
+| Workflow | ID | Status | Trigger |
+|----------|-----|--------|---------|
+| **Combined Morning Briefing** | dfVgfARoNS9XXMIq | ✅ | Daily 7 AM |
+| Operation plan | T2fTND8RQcNrx6jZc05Wh | ✅ | 12:00 |
+| Surgery Checklist | sF3jem3G4RztR9su | ✅ | 30 min |
+| Operations | xBlSfRngiWvEyCFetoHjs | ✅ | Polling |
+| Boss → Airtable | 7wV_aGUYTN8q_qJHSs-gy | ✅ | Scheduled |
+| Patient Discharge | h3XuUfInGUY3DDgu | ✅ | Webhook |
+| **Slack: /patient** | SuPFqfszZvm7NrLs | ✅ | Slack command |
+| **Slack: /ops** | fVibWFfEsLG4lpg1 | ✅ | Slack command |
+| **Slack: /beds** | qWJ9XBL9nQlTzHjo | ✅ | Slack command |
+| **Slack: /vlk** | vRsj4uEe15uIlWaK | ✅ | Slack command |
+| **Slack: /stats** | e3l4J3KI9tgBSiid | ✅ | Slack command |
+| **Slack: /surgery** | LTkL7j7i99btWwSu | ✅ | Slack command |
+| **MEGALITH 6: Interactive Handler** | y2vWK35PLkwj8zDr | ✅ | Button clicks (51 nodes, 9 routes) |
+| **Dovidka Cleanup (Daily)** | ZRbqEpbzkSWNRRM6 | ✅ | Daily 2 AM |
+| New Patient Admission | SuSKrbIFqFtNx3qO | ✅ | Every 1 min |
 
-### Handoff 2: Data Models Reference
-**File**: `/var/home/htsapenko/Projects/Zav/MODELS_REFERENCE.md`
-**Status**: ⏳ TO CREATE
-**Timeline**: Before MCP integration
-
-### Handoff 3: Test Data
-**File**: `/var/home/htsapenko/Projects/cyberintern/scripts/seed_test_data.sql`
-**Status**: ✅ AVAILABLE
-**Content**: 18 patients with realistic medical scenarios
-
-### Handoff 4: Integration Tests
-**File**: `/var/home/htsapenko/Projects/Zav/tests/mcp_integration_test.py`
-**Status**: ⏳ TO CREATE
-**Timeline**: After MCP implementation
-
----
-
-## KNOWN ISSUES
-
-### Critical
-1. **AlertGenerator Dependency** (QUICK FIX)
-   - Location: `/src/api/routers/alerts.py`
-   - Impact: `/api/alerts/` endpoint not working
-   - Fix: Wire up AlertGenerator in main.py dependency injection
-   - Priority: HIGH (blocks testing alerts tool)
-
-### Minor
-2. **Health Endpoint**
-   - Status: `/api/health/live` returns 404
-   - Impact: Container health checks
-   - Priority: LOW (not critical for functionality)
-
-### For MCP Developer
-3. **Authentication Flow**
-   - Must handle JWT token refresh (expires in 30 mins)
-   - Should cache tokens to avoid excessive login calls
-   - Implement automatic re-authentication on 401
+**Deprecated (replaced by Combined Morning Briefing):**
+- VLK Alert System v2 (S4HtG75YjVc2Z9tr) - deactivated
+- Daily Morning Report (hTwq6zC3mLwPWkrO) - deactivated
+- Overstay Alert (XHveI1Sg8mMnAFed) - deactivated
 
 ---
 
-## QUICK START COMMANDS
+## Slack Slash Commands
 
-### Run Backend
+| Command | Webhook | Description |
+|---------|---------|-------------|
+| `/patients` | slack-patient | Search patient by name |
+| `/ops` | slack-ops | Today's operations |
+| `/beds` | slack-beds | Ward occupancy |
+| `/vlk` | slack-vlk | VLK status (critical/warning) |
+| `/stats` | slack-stats | System statistics |
+| `/surgery` | slack-surgery | Surgery scheduling form |
+
+**Configured via:** Slack App Manifest API (app ID: A0AAC5L6ZGT)
+
+---
+
+## Environment Variables
+
+All in `~/.config/zav-secrets.env`:
+
 ```bash
-cd /var/home/htsapenko/Projects/cyberintern
-python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8082 --reload
+# Boss API
+BOSS_API_URL=http://localhost:8083
+BOSS_API_KEY=<optional-for-auth>
+
+# n8n
+N8N_URL=http://localhost:5678
+N8N_API_KEY=<key>
+
+# Airtable
+AIRTABLE_TOKEN=<token>
+AIRTABLE_BASE=appv5BwoWyRhT6Lcr
+
+# Slack
+SLACK_BOT_TOKEN=xoxb-...           # For n8n messaging
+SLACK_CONFIG_ACCESS_TOKEN=xoxe.xoxp-...  # For manifest API (12h expiry)
+SLACK_CONFIG_REFRESH_TOKEN=xoxe-...      # For token renewal
+
+# ngrok
+NGROK_AUTHTOKEN=<token>
 ```
 
-### Run Frontend
+---
+
+## Quick Start
+
 ```bash
-cd /var/home/htsapenko/Projects/cyberintern/src/web_ui_react
-npm install  # (if needed)
-npm run dev
+# Start Boss TUI (sources secrets automatically)
+boss
+
+# Start with Tailscale relay (for EMR scraping)
+boss-relay
+
+# Check all services
+boss-status
+
+# Start ngrok (required for Slack commands)
+ngrok http 5678 --domain=kristeen-rootlike-unflirtatiously.ngrok-free.dev
+
+# Manual backup
+bash ~/Projects/cyberintern-boss/scripts/backup-db.sh
 ```
 
-### Reseed Test Data
-```bash
-sqlite3 /var/home/htsapenko/Projects/cyberintern/data/cyberintern.db < /var/home/htsapenko/Projects/cyberintern/scripts/seed_test_data.sql
+---
+
+## Completed in This Session
+
+### Security (Phase 1)
+- [x] API key authentication for Boss API
+- [x] SQLite daily backups with rotation
+- [x] Secrets removed from documentation
+- [x] HTTP connection pooling
+- [x] Retry logic with exponential backoff
+
+### Slack (Phase 2)
+- [x] /vlk command
+- [x] /stats command
+- [x] /surgery command
+- [x] Combined morning briefing (replaces 3 separate workflows)
+- [x] Automated Slack command configuration via Manifest API
+
+---
+
+## Completed Today (2026-01-24 Session 2)
+
+### Slack Interactive Buttons - FIXED ✅
+- [x] **Webhook registration** - Workflow must be saved in UI for webhook to register
+- [x] **Parse Payload** - Fixed `typeof body === "string"` (was missing quotes)
+- [x] **Switch node "Route by Action"** - Fixed:
+  - Data Type must be set to `String` for "starts with" to appear
+  - Value 1: `={{ $json.actionId }}`
+  - Output numbers must be set manually (0, 1, 2) - don't auto-increment!
+- [x] **HTTP Request "Post to alerts"** - Fixed body parameter names (removed colons/spaces)
+- [x] **VLK Schedule flow working** - Button click → Posts to #alerts
+
+---
+
+## Completed Today (2026-01-24 Session 3) 🪓
+
+### VLK Modal Feature - COMPLETE ✅
+- [x] **VLK button → Modal opens** - Click patient button, modal appears with options
+- [x] **Modal submit → Posts to #alerts** - All tribe sees "планує ВЛК для..."
+- [x] **`/vlk` response now ephemeral** - Only user sees patient list, not spam channel
+- [x] **Airtable auto-update** - 30д/60д options update Дата ВЛК, Рішення ВЛК, Дні продовження
+- [x] **Airtable link option** - "Завантажити документ" posts clickable link to record
+
+### Modal Options (Final)
+| Option | Action |
+|--------|--------|
+| 📅 Запланувати на вівторок | Posts schedule to #alerts |
+| 📅 Запланувати на п'ятницю | Posts schedule to #alerts |
+| ✅ Продовження 30 днів | Updates Airtable + posts to #alerts |
+| ✅ Продовження 60 днів | Updates Airtable + posts to #alerts |
+| 📎 Пройдено, завантажити документ | Posts link to Airtable record for upload |
+
+### Boars Slain 🐗
+1. `invalid_auth` - n8n env vars don't work, used direct Slack token in headers
+2. `Credential ID "1" not found` - HTTP Request node needs direct token, not credential reference
+3. `Cannot read startsWith of undefined` - Parse Payload wasn't extracting `callbackId` for modal submissions
+
+### Workflow: MEGALITH 6 Interactive Handler (y2vWK35PLkwj8zDr) - 23 nodes
+```
+Slack Interactive (webhook: /webhook/slack-interactive)
+    ↓
+Parse Payload (extract actionId, value, user, responseUrl)
+    ↓
+Route Action (Switch - 5 outputs)
+    ├── vlk_schedule_* → Handle VLK → Respond VLK → Acknowledge
+    ├── surgery_* → Handle Surgery → Respond Surgery → Acknowledge 2
+    ├── discharge_* → Handle Discharge → Get Patient → Copy Template → Fill Document → Format Response → Respond Discharge → Acknowledge 3
+    ├── vlk_done_* → Handle VLK Done → Respond VLK Done → Acknowledge VLK Done
+    └── vlk_extend_* → Handle VLK Extend → Update Airtable VLK → Respond VLK Extend → Acknowledge VLK Extend
 ```
 
-### Test API Directly
-```bash
-# Get auth token
-TOKEN=$(curl -s -X POST http://localhost:8082/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123456"}' | jq -r '.access_token')
+### Key Technical Details
+- **Slack views.open** requires `trigger_id` from button click (expires in 3 seconds!)
+- **Modal callback_id** format: `vlk_modal_{recordId}` - used to route submissions
+- **private_metadata** stores: `{recordId, patientName}` - passed through modal lifecycle
+- **HTTP Request to Slack** needs direct Bearer token in header (not n8n credentials for this use case)
+- **Airtable API** uses PATCH to update record fields directly
 
-# List patients
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8082/api/patients
+---
 
-# Get specific patient
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8082/api/patients/1
+## Completed Today (2026-01-24 Session 4) 🪓
+
+### Boss TUI VLK Feature - COMPLETE ✅
+- [x] **VLK Action Popup** - Press 'v' on VLK tab to open action menu
+- [x] **Продовження 30 днів** - Updates Airtable (Дата ВЛК, Рішення ВЛК, Дні продовження: 30)
+- [x] **Продовження 60 днів** - Updates Airtable (Дата ВЛК, Рішення ВЛК, Дні продовження: 60)
+- [x] **Відкрити в Airtable** - Opens browser with patient record for document upload
+- [x] **Shortcut visible in footer** - `v:action` shown on VLK tab
+- [x] **Shortcut in help menu** - VLK TAB section with 'v' description
+
+### Files Modified
+- `boss-tui/src/models/airtable.rs` - Added `id` field to AirtableRecord
+- `boss-tui/src/api/airtable.rs` - Added `update_vlk_record()` method
+- `boss-tui/src/app.rs` - Added `show_vlk_action` state and `execute_vlk_action()` async method
+- `boss-tui/src/main.rs` - Added keyboard handlers for VLK popup (v, 1, 2, 3, Esc)
+- `boss-tui/src/ui/vlk.rs` - Added `render_vlk_action_popup()` function
+- `boss-tui/src/ui/footer.rs` - Added `v:action` to VLK tab shortcuts
+- `boss-tui/src/ui/help.rs` - Added VLK TAB section with shortcut description
+
+### Barbarian Technique Added to CLAUDE.md 🪓
+- "Grug Mode" section added - effective coding style for debugging sessions
+
+### Sandbox Boar Slain 🐗
+- **EPERM error fixed** - Changed `Command::new("xdg-open")` to `open::that()`
+- The `open` crate handles Flatpak/sandbox environments properly
+- FILE: `boss-tui/src/app.rs:1029`
+
+---
+
+## Completed Today (2026-01-24 Session 5) 🪓
+
+### MEGALITH 6: Interactive Handler - UPGRADED ✅
+- [x] **VLK +2/+4 months buttons** - Now update Airtable directly (was broken)
+- [x] **Discharge flow** - Google Docs integration complete
+- [x] **Discharge button** → Copies 027 template → Fills with patient data → Returns link
+
+### Discharge Flow (New)
+```
+User clicks "Виписати" button in Slack
+    ↓
+Handle Discharge (extract recordId, patientName)
+    ↓
+Get Patient (Airtable - fetch full patient record)
+    ↓
+Copy Template (Google Drive - copy 027 template doc)
+    ↓
+Fill Document (Google Docs - replace placeholders)
+    ↓
+Format Response (build Slack message with doc link)
+    ↓
+Respond Discharge (POST to response_url)
+    ↓
+Acknowledge 3 (200 OK to Slack)
 ```
 
-### Check API Documentation
-- Swagger UI: http://localhost:8082/docs
-- ReDoc: http://localhost:8082/redoc
+### Placeholders in 027 Template
+| Placeholder | Airtable Field |
+|-------------|----------------|
+| `{{ПІБ}}` | ПІБ |
+| `{{Дата_народження}}` | Дата народження |
+| `{{Діагноз}}` | Повний діагноз / Діагноз |
+| `{{Дата_госпіталізації}}` | Дата госпіталізації |
+| `{{Дата_виписки}}` | Current date |
+| `{{№_історії}}` | № історії |
+| `{{Хірург}}` | Хірург |
+| `{{Рекомендації}}` | Рекомендації |
+
+### Credentials Used
+| Service | Credential ID | Name |
+|---------|---------------|------|
+| Airtable | oB0crB7qKyJOGI5a | Airtable Personal Access Token |
+| Google Drive | rMWvrK8pn4JH2Sl8 | Google Drive account |
+| Google Docs | renz2o80wUGVVoOD | Google Docs account |
+
+### Google Drive Resources
+- **Template:** `1q8FTR4l7oY5KJGLjVDyMYkJNvt6HSV4K3aymn5fykg8`
+- **Output folder:** `1ZL3RqSdNVcQ0Gabbz6GdCey59IWuB2EW`
 
 ---
 
-## DEVELOPMENT TIMELINE
+## Completed Today (2026-01-25) 🪓🔥 BARBARIAN SESSION
 
-### Phase 1: Setup & Documentation ✅ DONE
-- [x] Define API specification
-- [x] Document data models
-- [x] Create test data
-- [x] Create handoff prompt
+### GREAT VYPYSKA HUNT - COMPLETE! ✅🔥
 
-### Phase 2: MCP Foundation (Current)
-- [ ] Create MCP server skeleton
-- [ ] Build API client wrapper
-- [ ] Implement authentication handling
-- [ ] Set up testing infrastructure
+**The 4-Step Discharge Flow - No Webhooks, No Polling, Pure Button Magic!**
 
-### Phase 3: Core Tools (Week 2)
-- [ ] Implement tools 1-3 (doctor, patient, diary)
-- [ ] Integration testing
-- [ ] Fix any API issues
+```
+STEP 1: Click "Виписати" on patient
+        → See "📝 Заповнити форму" button
 
-### Phase 4: Extended Tools (Week 2)
-- [ ] Implement tools 4-7 (prescriptions, labs, create)
-- [ ] Advanced error handling
-- [ ] Performance optimization
+STEP 2: Click "📝 Заповнити форму"
+        → Opens prefilled Airtable form
+        → Shows "📄 Згенерувати виписку" button
 
-### Phase 5: Advanced Tools (Week 3)
-- [ ] Implement tools 8-10 (search, alerts, analysis)
-- [ ] Full integration testing
-- [ ] Documentation completion
+STEP 3: Fill form in Airtable, then click "📄 Згенерувати виписку"
+        → 027 document generated in Google Docs
+        → Shows "✅ Виписка підписана і здана" button
 
-### Phase 6: Production Ready (Week 3)
-- [ ] Final testing
-- [ ] Performance tuning
-- [ ] Deployment preparation
-
----
-
-## COMMUNICATION PROTOCOL
-
-### Daily Updates
-Update this file with:
-- [x] Completed tasks
-- [ ] In-progress work
-- [ ] Blockers
-
-### Sync Points
-1. **After MCP Phase 1**: Skeleton complete, ready for API calls
-2. **After Phase 2**: Core 3 tools working
-3. **After Phase 3**: First 7 tools complete
-4. **After Phase 4**: All 10 tools implemented
-5. **Final**: Integration complete, ready for deployment
-
-### Blocker Escalation
-If blocked:
-1. Document issue in this STATUS.md file
-2. Check MCP_HANDOFF_PROMPT.md for API contract clarification
-3. Review CyberIntern code for implementation details
-4. Report to main developer
-
----
-
-## SUCCESS METRICS
-
-- [ ] All 10 MCP tools implemented
-- [ ] All tools tested with real patient data
-- [ ] Integration tests passing (8 patient scenarios)
-- [ ] Error handling for all failure cases
-- [ ] Documentation complete
-- [ ] Claude can query medical data via natural language
-- [ ] Data synchronized between App and MCP
-- [ ] Performance acceptable (< 1s response time)
-- [ ] Security: All API calls authenticated
-- [ ] Ready for production deployment
-
----
-
-## NOTES
-
-**Architecture**:
-- Modular separation between App and MCP
-- Clear API contract eliminates tight coupling
-- Independent development streams possible
-- Easy to swap implementations
-
-**Test Coverage**:
-- 18 diverse patient scenarios
-- Realistic medical data
-- Multiple alert types for testing
-- Historical data for analytics
-
-**Next Developer**:
-- Start with MCP_HANDOFF_PROMPT.md
-- Review API specification
-- Check CyberIntern source code
-- Follow development roadmap
-- Update this STATUS file daily
-
----
-
----
-
-## STREAM 3: ZAV SYSTEM (AI Secretary - Ultrathinking Session)
-
-### Session: 2025-12-17 Ultrathinking Complete ✅
-
-**What Was Done**:
-- [x] Complete architecture design from top-to-bottom
-- [x] Analyzed all Zav planning documentation (Dec 2024)
-- [x] Identified core workflow: **Conveyor-belt throughput optimization**
-- [x] Designed 16 integrated tools (prioritized in 3 phases)
-- [x] Validated architecture with medical domain expert (YOU)
-- [x] Incorporated feedback: Documentation Control, Resource Allocation, Doctor Is In, Manual Override, 120-Day Tracker, Patient Communication
-
-**Documents Created**:
-- [x] `ZAV_ARCHITECTURE.md` - Original 80+ page detailed design
-- [x] `ULTRATHINK_SUMMARY.md` - Summary with operation planning
-- [x] `ZAV_REVISED_ARCHITECTURE.md` - ✅ FINAL validated version
-- [x] `CLAUDE_CONFIG.md` - Documentation navigation guide
-
-**Architecture: VALIDATED** ✅
-
-### The 16 Tools (Prioritized)
-
-**Phase 1 (Weeks 1-2): Visibility**
-- [ ] CyberIntern MCP Bridge - Full patient card from EMR
-- [ ] Dashboard/Status - Real-time patient pipeline
-- [ ] Patient Monitoring - Individual patient + 120-day tracker
-- [ ] Alert System - Clinical + bottleneck alerts
-- [ ] Documentation Control - Monitor doctor performance
-
-**Phase 2 (Weeks 3-4): Prevention**
-- [ ] Load Prediction - Forecast bed crises
-- [ ] Discharge Assessment - Patient readiness
-- [ ] Operation Planning - Weekly surgery (12:00 daily lock)
-- [ ] Resource Allocation - Balance doctors
-
-**Phase 3 (Weeks 5-7): Control**
-- [ ] Doctor Is In - Consultation timing
-- [ ] Overstay Detection - Find stuck patients
-- [ ] Staged Treatment - Re-admission scheduling
-- [ ] Evacuation Handler - Emergency admissions
-- [ ] Manual Override - Modify operation plan
-- [ ] 120-Day Tracker - Long-term patient warnings
-- [ ] Patient Communication - Department contact channel
-- [ ] Antibiotic Monitoring - Duration/effectiveness
-- [ ] Equipment Tracking - VAC/fixators/drains
-- [ ] Reporting - Throughput metrics
-
-**Phase 4: Polish**
-- [ ] VLK Workflow (can wait, not MVP critical)
-
-### Key Medical Expert Input
-
-✅ Confirmed: Conveyor-belt optimization (not just decision support)
-✅ Confirmed: Operation planning workflow (Thu submit → Fri approve)
-✅ Confirmed: Brood decisions (discharge, load, overstay, AB, scheduling)
-✅ Added: Documentation Control, Resource Allocation, Doctor Is In, Manual Override, 120-Day Tracker, Patient Communication
-✅ Daily rhythm: 08:00 briefing, 12:00 operative plan locked
-
-### ✅ UNBLOCKED - MCP READY FOR ZAV INTEGRATION
-
-- [x] CyberIntern MCP is ready (all 10 tools implemented and tested)
-- [x] EMR data access available via alerts and patient list APIs
-- [x] Project repo set up at `/var/home/htsapenko/Projects/Zav/`
-
-### Phase 1 Implementation Status: ✅ COMPLETE (Session 3 - Dec 18)
-
-**Status**: Production-ready, fully integrated with backend, all security tests passing
-
-**Deliverables**:
-- [x] `zav_phase_1_dashboard.py` - Interactive alert dashboard (400 lines)
-  - Real-time alert fetching
-  - Patient context integration
-  - AI analysis capability
-  - Alert filtering and management
-  - Interactive CLI interface
-
-- [x] `zav_alert_monitor.py` - Background monitoring service (550 lines)
-  - Continuous polling from EMR
-  - Alert queue management
-  - Patient caching
-  - Alert lifecycle tracking
-  - JSON export capability
-
-- [x] `ZAV_PHASE_1_README.md` - Complete documentation (1000+ lines)
-  - Usage examples
-  - API reference
-  - Configuration guide
-  - Troubleshooting
-
-**Phase 1 Features**:
-- ✅ Real-time alert monitoring
-- ✅ Patient context integration
-- ✅ AI-powered analysis
-- ✅ Alert filtering (severity, status, type)
-- ✅ Background polling service
-- ✅ Interactive dashboard
-- ✅ JSON export
-
-**Phase 1 Status**: ✅ **READY FOR DEPLOYMENT**
-
-### Phase 2 Implementation Status: ✅ COMPLETE (Session 4 - Dec 18)
-
-**Status**: Fully integrated with security modules, 13/13 tests passing, production-ready
-
-**Deliverables**:
-- [x] Enhanced `zav_phase_2_core.py` with security integration
-  - Input validation on all tool parameters
-  - Authorization checks (RBAC) for each tool
-  - SQLite persistence for all results
-  - Updated doctor permissions for Phase 2 operations
-- [x] **Tool 1: Load Prediction** - 7-day bed capacity forecasting
-- [x] **Tool 2: Discharge Assessment** - Identify discharge-ready patients with scores
-- [x] **Tool 3: Operation Planning** - Weekly OR schedule with utilization metrics
-- [x] **Tool 4: Resource Allocation** - Recommend workload balancing across doctors
-- [x] `test_zav_phase_2_integration.py` - Comprehensive test suite (13/13 tests PASSING)
-- [x] `PHASE_2_INTEGRATION_SUMMARY.md` - Complete documentation
-
-**Phase 2 Status**: ✅ **PRODUCTION READY - SECURITY HARDENED**
-
-### Phase 3 Implementation Status: ✅ COMPLETE (Session 4 - Dec 18)
-
-**Status**: Advanced workflows complete, 21/21 tests passing, full security integration
-
-**Deliverables**:
-- [x] `zav_phase_3_advanced_workflows.py` - Phase 3 engine with 5 tools
-- [x] **Tool 1: Doctor Is In** - Real-time consultation queue scheduling and assignment
-- [x] **Tool 2: Overstay Detection** - Find stuck patients with root cause analysis
-- [x] **Tool 3: Staged Treatment** - Track multi-stage surgeries and re-admissions
-- [x] **Tool 4: Evacuation Handler** - Process emergency admissions safely
-- [x] **Tool 5: Manual Override** - Urgent schedule modifications with approval trails
-- [x] `test_zav_phase_3_integration.py` - Comprehensive test suite (21/21 tests PASSING)
-- [x] `PHASE_3_IMPLEMENTATION_SUMMARY.md` - Complete documentation
-
-**Security Features**:
-- ✅ Input validation on all tools
-- ✅ RBAC authorization enforcement
-- ✅ SQLite persistence with audit trail
-- ✅ Error handling and logging
-
-**Phase 3 Status**: ✅ **PRODUCTION READY - SECURITY HARDENED**
-
-### Phase 3B Implementation Status: ✅ COMPLETE (Session 4 - Dec 18)
-
-**Status**: Final optimization tools complete, 33/33 tests passing, production-ready
-
-**Deliverables**:
-- [x] `zav_phase_3b_complete_workflows.py` - Phase 3B engine with 5 remaining tools
-- [x] **Tool 6: 120-Day Milestone Tracker** - Long-term patient stay warnings
-- [x] **Tool 7: Patient Communication** - Multi-channel patient messaging (Telegram/WhatsApp/Email/SMS)
-- [x] **Tool 8: Antibiotic Monitoring** - Track courses for duration, effectiveness, safety
-- [x] **Tool 9: Equipment Tracking** - Medical equipment lifecycle management (VAC/fixators/drains)
-- [x] **Tool 10: Reporting & Analytics** - Hospital throughput metrics and bottleneck analysis
-- [x] `test_zav_phase_3b_integration.py` - Comprehensive test suite (33/33 tests PASSING)
-- [x] `PHASE_3B_IMPLEMENTATION_SUMMARY.md` - Complete documentation
-
-**Security Features**:
-- ✅ Input validation on all tools
-- ✅ RBAC authorization enforcement
-- ✅ SQLite persistence with audit trail
-- ✅ Error handling and logging
-
-**Phase 3B Status**: ✅ **PRODUCTION READY - SECURITY HARDENED**
-
-### Complete Zav System Summary
-
-**All Phases Complete**:
-- Phase 1: Visibility (Alert monitoring + patient context) ✅
-- Phase 2: Prevention (Load forecast + discharge + operations + resources) ✅
-- Phase 3: Control (Consultations + overstays + staged treatment + evacuation + override) ✅
-- Phase 3B: Optimization (120-day tracking + communication + antibiotics + equipment + reporting) ✅
-
-**Total Implementation**:
-- **10 Tools Implemented**: All complete with full security
-- **Total Tests**: 117/117 PASSING (Phase 2: 13 + Phase 3: 21 + Phase 3B: 33)
-- **Lines of Code**: 2,000+ production-ready code
-- **Security Modules**: 3 modules (validation, authorization, persistence) - 850+ lines
-- **Documentation**: Complete and comprehensive
-- **Status**: ✅ **PRODUCTION READY FOR DEPLOYMENT**
-
-### Next Steps
-
-1. ✅ All phases implemented and tested
-2. ✅ Security hardened with validation, authorization, persistence
-3. → Deploy to production hospital environment
-4. → Connect to live EMR for real patient data
-5. → Monitor and optimize based on hospital feedback
-
----
-
-**Project Status**: ✅ **COMPLETE - READY FOR PRODUCTION DEPLOYMENT**
-**Last Update**: December 18, 2025
-**Total Development Time**: Session 4 (1 session)
-**All Tests Passing**: 117/117 ✅
-**Security Status**: Hardened and verified ✅
-
----
-
-## STREAM 4: ZAV CLI INTERFACE (Claude Integration Layer)
-
-### Status: ✅ COMPLETE
-
-**What Was Built**: A unified Claude CLI interface that transforms Claude into a hospital management AI with consistent output formatting and command recognition.
-
-**Deliverables**:
-- ✅ `zav_cli_interface.py` (500+ lines) - Main CLI interface
-  - Command recognition and routing
-  - Output formatting system (tables, alerts, recommendations)
-  - State management (patient context, filters, view modes)
-  - 9 major display methods for different queries
-
-- ✅ `ZAV_SYSTEM_PROMPT.md` - Claude's operating instructions
-  - How to recognize commands
-  - How to format output consistently
-  - What information to include
-  - How to suggest recommendations
-
-- ✅ `ZAV_CLI_USER_GUIDE.md` - Complete user reference (500+ lines)
-  - Command categories and examples
-  - Output format explanation
-  - Common workflows
-  - Troubleshooting guide
-
-- ✅ `ZAV_CLI_MASTER_GUIDE.md` - Complete system design
-  - Architecture overview
-  - All 10 tools documented
-  - Example interactions
-  - Integration points
-
-- ✅ `ACTIVATE_ZAV.md` - Quick start guide (1 minute)
-  - Simple activation instructions
-  - First commands to try
-  - Quick reference
-
-- ✅ `README_ZAV_CLI.md` - System overview
-  - What Zav is and does
-  - Quick start
-  - Example commands
-  - Feature list
-
-- ✅ `INDEX.md` - Complete navigation guide
-  - Documentation by role
-  - Files organized by purpose
-  - Quick reference
-  - Learning path
-
-**Features**:
-- ✅ Natural language command recognition
-- ✅ Consistent formatted output (tables, alerts, recommendations)
-- ✅ Context awareness (remembers patient, filters, preferences)
-- ✅ 10 integrated tools accessible through CLI
-- ✅ All phases (1-4) available
-- ✅ Security integrated (validation, auth, persistence)
-- ✅ Multiple output modes (table, summary, detailed, JSON)
-- ✅ Command history and state management
-- ✅ Actionable recommendations on every output
-- ✅ Color-coded urgency levels
-
-**How It Works**:
-1. User talks to Claude in natural language
-2. Claude recognizes command (alerts, bed forecast, overstay, etc.)
-3. Routes to appropriate tool (Phase 1-4 tools)
-4. Formats output consistently (table + summary + recommendations)
-5. Maintains context across queries
-6. Claude becomes a hospital management AI
-
-**CLI Status**: ✅ **PRODUCTION READY - TRANSFORM CLAUDE INTO ZAV**
-
----
-
-### Complete Zav System - Final Status
-
-| Component | Status | Details |
-|-----------|--------|---------|
-| Phase 1: Visibility | ✅ Complete | Alert monitoring + patient monitoring |
-| Phase 2: Prevention | ✅ Complete | Forecasting + discharge + operations + resources |
-| Phase 3: Control | ✅ Complete | Consultations + overstays + treatment + evacuation + override |
-| Phase 3B: Optimization | ✅ Complete | Milestones + communication + antibiotics + equipment + reporting |
-| Security Foundation | ✅ Complete | Validation + authorization + persistence |
-| Testing | ✅ 117/117 Passing | All phases, all scenarios |
-| CLI Interface | ✅ Complete | Claude integration layer |
-| Documentation | ✅ Complete | 15+ files covering all aspects |
-| Production Readiness | ✅ YES | Fully hardened and tested |
-
-**Total Implementation**: 3,250+ lines of code + 15+ documentation files
-**Total Tests**: 117/117 passing (100%)
-**Status**: ✅ **PRODUCTION READY FOR IMMEDIATE DEPLOYMENT**
-
----
-
----
-
-## STREAM 5: CLOUD DEPLOYMENT (Railway + PostgreSQL + Google Sheets)
-
-### Cloud Architecture
-**Status**: ✅ **COMPLETE - PRODUCTION READY**
-
-Deployment: Free/Always-On (Railway $5/month credit)
-Database: PostgreSQL (automatic provisioning)
-Web UI: Google Sheets (bidirectional sync)
-Bot: Telegram (webhook-based)
-
-### Deployment Components Built
-
-| Component | File | Lines | Status |
-|-----------|------|-------|--------|
-| Flask Cloud Server | `zav_cloud_server.py` | 500+ | ✅ Complete |
-| Google Sheets Sync | `zav_sheets_sync.py` | 400+ | ✅ Complete |
-| Telegram Bot Handler | `zav_telegram_handler.py` | 350+ | ✅ Complete |
-| Python Dependencies | `requirements.txt` | 30+ | ✅ Complete |
-| Railway Config | `Procfile` | 1 | ✅ Complete |
-| Environment Template | `.env.example` | 20+ | ✅ Complete |
-
-### REST API Endpoints (40+ implemented)
-
-**Health & Status**
-- GET `/api/health` - System health check
-
-**Patient Management**
-- GET `/api/patients` - List all patients
-- GET `/api/patients/<id>` - Get patient + all related data
-- POST `/api/patients` - Create patient
-- PUT `/api/patients/<id>` - Update patient
-
-**Equipment Tracking**
-- GET `/api/equipment` - List all equipment
-- GET `/api/equipment/<patient_id>` - Get patient equipment
-- POST `/api/equipment` - Add equipment
-
-**Antibiotics Monitoring**
-- GET `/api/antibiotics/<patient_id>` - Get antibiotic courses
-- POST `/api/antibiotics` - Add antibiotic course
-
-**Alert Management**
-- GET `/api/alerts` - Get active alerts (with severity filter)
-- POST `/api/alerts` - Create new alert
-
-**Synchronization**
-- POST `/sync/sheets` - Trigger Google Sheets sync
-
-**Telegram Webhook**
-- POST `/webhook/telegram` - Receive Telegram messages
-
-### Telegram Bot Commands (10 commands)
-
-| Command | Purpose |
-|---------|---------|
-| `/start` | Welcome menu |
-| `/help` | Command help |
-| `/alerts` | Active alerts by severity |
-| `/beds` | Bed occupancy status |
-| `/discharge` | Discharge-ready patients |
-| `/patients` | Patient list |
-| `/patient <id>` | Specific patient details |
-| `/equipment` | Equipment status |
-| `/antibiotics` | Antibiotic courses |
-| `/status` | System health status |
-
-### Database Schema
-
-**Tables (5 main + audit tables)**:
-- `patients` - Main patient records
-- `equipment` - Medical equipment tracking
-- `antibiotics` - Antibiotic course monitoring
-- `consultations` - Consultation scheduling
-- `alerts` - Alert management system
-
-**Features**:
-- Automatic timestamps (created_at, updated_at)
-- Foreign key relationships (referential integrity)
-- PostgreSQL SERIAL IDs (auto-increment)
-- Status tracking for all entities
-
-### Google Sheets Sync
-
-**Bidirectional Sync Features**:
-- Database → Sheets: Every 5 minutes (automatic)
-- Sheets → Database: Manual pull (on-demand)
-
-**Sheets Tabs**:
-- Patients (all patient records)
-- Equipment (medical equipment)
-- Antibiotics (antibiotic courses)
-- Consultations (scheduling)
-- Alerts (active alerts)
-
-### Documentation Created
-
-| File | Purpose | Pages |
-|------|---------|-------|
-| `RAILWAY_DEPLOYMENT_GUIDE.md` | Step-by-step deployment | 10+ |
-| `CLOUD_DEPLOYMENT_SUMMARY.md` | System overview | 8+ |
-
-### Deployment Process
-
-**Steps to Deploy** (follow guide):
-1. ✅ Prepare code on GitHub
-2. ✅ Create Telegram bot (@BotFather)
-3. ✅ Create Railway account
-4. ✅ Connect GitHub to Railway
-5. ✅ Add PostgreSQL service
-6. ✅ Set environment variables
-7. ✅ Configure Telegram webhook
-8. ✅ Test API endpoints
-9. ✅ Test Telegram bot
-10. ✅ Share with hospital staff
-
-### Features Enabled
-
-**Always-On Operation**
-- ✅ 24/7 availability (Railway cloud)
-- ✅ No sleeping or downtime
-- ✅ Automatic scaling under load
-
-**Mobile Access**
-- ✅ Telegram bot for staff phones
-- ✅ Real-time alert notifications
-- ✅ Natural language commands
-- ✅ No app installation needed
-
-**Web Interface**
-- ✅ Google Sheets for data viewing
-- ✅ Easy editing in familiar format
-- ✅ Automatic sync from database
-- ✅ Shareable with teams
-
-**Professional Database**
-- ✅ PostgreSQL reliability
-- ✅ Automatic daily backups
-- ✅ Scales to 10,000+ records
-- ✅ Fast query performance
-
-**Cost Analysis**
-- ✅ FREE with Railway credit
-- ✅ $5/month after credit (if needed)
-- ✅ No hidden fees
-- ✅ Minimal operational cost
-
-### API Response Examples
-
-```json
-// GET /api/health
-{
-  "status": "ok",
-  "timestamp": "2025-12-18T10:30:00",
-  "database": "connected"
-}
-
-// GET /api/patients/PAT001
-{
-  "patient_id": "PAT001",
-  "name": "John Doe",
-  "status": "active",
-  "admission_date": "2025-12-10",
-  "equipment": [...],
-  "antibiotics": [...],
-  "consultations": [...],
-  "alerts": [...]
-}
-
-// Telegram /start
-🏥 Welcome to Zav Hospital Management
-I'm here to help you manage hospital operations 24/7.
-[Quick Commands menu with buttons]
+STEP 4: Chief signs doc, click "✅ Виписка підписана і здана"
+        → PDF saved to Airtable "Виписка 027" field
+        → Doc deleted from Google Drive
+        → DONE! 🎉
 ```
 
-### Monitoring & Maintenance
+#### New Routes Added to MEGALITH 6
+| Route | Action ID | Purpose |
+|-------|-----------|---------|
+| `fill_form` | `fill_form_<recordId>` | Opens Airtable form + shows generate button |
+| `generate_vypyska` | `generate_vypyska_<recordId>` | Generates 027 doc + shows signed button |
+| `vypyska_signed` | `vypyska_signed_<recordId>_<docId>` | PDF → Airtable → Delete from Drive |
 
-**Railway Dashboard Access**
-- Real-time logs for Flask server
-- PostgreSQL metrics and storage
-- Automatic daily backups
-- One-click deployment from GitHub
+#### New Nodes in MEGALITH 6 (51 total nodes, 9 routes)
+- Handle Fill Form
+- Get Patient Fill Form
+- Build Form URL Fill
+- Respond Fill Form
+- Ack Fill Form
+- Handle Generate
+- Get Patient Generate
+- Copy 027 Generate
+- Fill 027 Generate
+- Format Generate Response
+- Respond Generate
+- Ack Generate
+- Handle Signed
+- Export PDF
+- Upload to Airtable
+- Delete from Drive
+- Respond Signed
+- Acknowledge Signed
 
-**Alerting**
-- Telegram alerts for critical events
-- Email notifications (configurable)
-- System health monitoring
-- Performance metrics
+#### Dovidka Cleanup Workflow Created ✅
+- **Workflow:** Dovidka Cleanup (Daily)
+- **ID:** ZRbqEpbzkSWNRRM6
+- **Trigger:** Daily at 2 AM
+- **Action:** Deletes Dovidka files older than 24h from Google Drive
 
-### Success Criteria
+#### Boars Slain 🐗
+1. **`invalid_blocks`** - Button value too long (contained entire form URL). Fixed: pass only patient name, build URL in separate node
+2. **Airtable free plan no webhook** - No webhook action available. Solution: User-driven button flow instead
+3. **Form prefill URL encoding** - Special chars broke URL. Fixed: proper encoding + truncation of long values
 
-✅ Telegram bot responds to commands
-✅ REST API returns patient data
-✅ Google Sheets syncs every 5 minutes
-✅ Hospital staff access via Telegram
-✅ System runs 24/7 without interruption
-✅ Database handles 10,000+ records
-✅ Response time < 500ms average
+#### Key Technical Decisions
+- **No polling** - User controls when to generate (click button after filling form)
+- **No webhooks** - Airtable free plan doesn't have webhook action
+- **Button-driven flow** - Each step reveals the next button
+- **Form URL built server-side** - Prefill params built in n8n, not stored in button value
 
-### Next Steps
+### Discharge Document Name Fix ✅
+- [x] **"Copy of undefined" → Proper name** - Changed expression to use `$('Get Patient').first().json['ПІБ']`
+- [x] Document naming format: `Vypyska_<PatientName>_<Date>`
 
-**Immediate** (Day 1):
-- Deploy to Railway following guide
-- Test with sample data
-- Share Telegram bot with staff
+### CyberIntern Enrichment Module ✅
+- [x] **Created `cyberintern_enrichment.py`** - Fetches 027/о data from CyberIntern API
+- [x] **Patient matching** by case_number, history_number, pib
+- [x] **Parses diary content** for complaints, anamnesis, objective status
+- [x] **Integrated into auto_sync_task** (Step 4)
+- [x] **New endpoint `/sync/enrich-cyberintern`**
 
-**This Week** (Days 2-3):
-- Set up production database
-- Configure alert rules
-- Train staff on commands
+### 027/о Field Mappings Added ✅
+New Airtable field mappings in `airtable_sync.py`:
+| Boss Field | Airtable Field |
+|------------|----------------|
+| address | Місце проживання |
+| complaints | Скарги пацієнта |
+| disease_anamnesis | Анамнез хвороби |
+| life_anamnesis | Анамнез життя |
+| objective_status | Об'єктивний стан |
+| lab_tests | Обстеження лабораторні |
+| instrumental_tests | Обстеження інструментальні |
+| consultations | Консультації |
+| treatment | Лікування |
+| treatment_result | Результат лікування |
+| recommendations | Рекомендації |
+| sicklist_start | МВТН початок |
+| sicklist_end | МВТН кінець |
 
-**This Month**:
-- Integrate with EMR system
-- Add custom reports
-- Optimize performance
+### ngrok for Boss API ✅
+- [x] **Auto-starts with `boss` command** - Added to `~/.zshrc` boss() function
+- [x] **Port 8083** - ngrok http 8083
+- [x] **URL saved to `/tmp/boss-ngrok-url.txt`**
+- [x] **Updated `boss-status()` and `boss-stop()`** to include ngrok
 
-### Cloud Deployment Status
+### Dovidka (Hospital Stay Certificate) Generation ✅
+- [x] **Template uploaded to Google Drive** - ID: `1uk3RCS2IYqGgLa3jzvAJa1Dqpiiwe5ei8WYYA0sqv3M`
+- [x] **"📄 Довідка" button added** to MEGALITH 1 patient search results
+- [x] **7 new nodes in MEGALITH 6** for dovidka flow
 
-**Overall**: ✅ **PRODUCTION READY - READY FOR IMMEDIATE DEPLOYMENT**
-
-**What's Ready**:
-- ✅ Flask server (production-grade)
-- ✅ PostgreSQL schema (optimized)
-- ✅ Telegram bot (fully featured)
-- ✅ Google Sheets sync (bidirectional)
-- ✅ REST API (40+ endpoints)
-- ✅ Documentation (comprehensive)
-- ✅ Deployment guide (step-by-step)
-
-**What You Get**:
-- ✅ 24/7 cloud infrastructure
-- ✅ Mobile-first access (Telegram)
-- ✅ Professional database
-- ✅ Web UI (Google Sheets)
-- ✅ Minimal cost ($0-5/month)
-- ✅ Automatic backups
-- ✅ Production monitoring
-
-**Time to Deploy**: 15-20 minutes (following guide)
-**Estimated Setup**: 1 day (with staff training)
-**ROI**: Immediate 24/7 operation + mobile access
-
----
-
----
-
-## STREAM 6: EXTERNAL PATIENT APPROVAL WORKFLOW (Bricks 1-8)
-
-### Session: 2025-12-18 Implementation Complete ✅
-
-**What Was Built**: Complete workflow for planned patients (currently non-hospitalized/"external" patients) to be submitted via Telegram for department head approval and surgical scheduling.
-
-**Purpose**: Manage intake of external/planned patients who need to be scheduled for hospitalization and surgery.
-
-**Status**: ✅ **DEPLOYED TO PRODUCTION - RAILWAY**
-
-### Implementation Summary (8 Bricks)
-
-**Brick 1: Database Schema** ✅ Complete
-- Added approval columns to patients table:
-  - `approved_at`, `approved_by`, `assigned_doctor_id`, `assigned_doctor_name`
-  - `hospitalization_date`, `rejection_reason`, `external_doctor_chat_id`
-- Created `doctors` table with Ukrainian names
-- Created `operation_slots` table with OR room scheduling
-- Automatic seeding of 3 Ukrainian doctors on init
-
-**Brick 2: Doctor Management Endpoints** ✅ Complete
-- `GET /api/doctors` - List all doctors
-- `GET /api/doctors/<id>` - Get doctor details
-- `POST /api/doctors` - Create doctor
-- `PUT /api/doctors/<id>` - Update doctor
-- Seeded doctors: Dr. Ivanov Petro, Dr. Kovalenko Maria, Dr. Shevchenko Oleh
-
-**Brick 3: Operation Slot Endpoints** ✅ Complete
-- `GET /api/operation-slots?date=YYYY-MM-DD` - List available slots
-- `POST /api/operation-slots` - Create slot
-- Weekly slot generation (3 OR rooms: OR-1, OR-2 morning; OR-3 afternoon)
-- Time slots: 08:00-12:00, 14:00-17:00
-
-**Brick 4: Patient Approval Endpoints** ✅ Complete
-- `GET /api/patients/pending` - List pending external patients
-- `PUT /api/patients/<id>/approve` - Approve with date + doctor + slot
-- `PUT /api/patients/<id>/reject` - Reject with reason
-- Full validation and error handling
-
-**Brick 5: Telegram Commands** ✅ Complete
-- `/pending` - List pending patients (Ukrainian formatting)
-- `/approve <id> <date> <doctor_id>` - Approve patient with scheduling
-- `/reject <id> <reason>` - Reject patient with notification
-- Patient submission format: `Name, Age, Operation, Details`
-
-**Brick 6: Zav CLI Integration** ✅ Complete
-- `show_pending_patients()` - Call cloud API for pending list
-- `approve_patient(id, date, doctor, slot)` - Approve from CLI
-- `reject_patient(id, reason)` - Reject from CLI
-- `show_operation_slots(date)` - View available slots
-- New commands: `pending`, `approve`, `reject`, `slots`
-
-**Brick 7: CyberIntern Sync** ✅ Complete (Minimal)
-- Logging for future CyberIntern sync
-- Placeholder for hospitalization date sync
-- Designed for future: `status='approved' AND hospitalization_date <= today`
-
-**Brick 8: Notifications to Submitters** ✅ Complete
-- Ukrainian notifications on approval (sent to whoever submitted the patient):
-  ```
-  ✅ Запит схвалено!
-  👤 Пацієнт: [name]
-  📅 Дата госпіталізації: [date]
-  🏥 Операція: [operation]
-  👨‍⚕️ Призначений лікар: [doctor]
-  ⏰ Операційна зала: [slot]
-  ```
-- Rejection notifications with reason
-- Captures `external_doctor_chat_id` (submitter's Telegram chat ID) for routing
-
-### Google Sheets Integration ✅ Complete
-
-**New Worksheets Created**:
-
-1. **"Щоденний План" (Daily Operation Plan)**
-   - Shows today's approved operations
-   - Columns (Ukrainian):
-     - # | Відділення | Прізвище ім'я | Кімната | Вік | № історії хвороби
-     - Діагноз | Операція | Операційна | Черга | Тривалість | Бригада
-   - Auto-calculates operation duration from time slots
-   - Updates on every approval
-
-2. **"Тижневий План" (Weekly Operation Plan)**
-   - Week-at-a-glance (Monday-Friday)
-   - Grid format with days as columns
-   - Each cell shows: Patient name / Operation / Duration / Surgeon
-   - Duration calculated from `time_start` and `time_end`
-   - Updates on every approval/rejection
-
-**Sync Behavior**:
-- Triggers automatically on patient approval
-- Triggers automatically on patient rejection
-- Real-time updates to Google Sheets
-- Sheet URL: https://docs.google.com/spreadsheets/d/1uMRrf8INgFp8WMOSWgobWOQ9W4KrlLw_NR3BtnlLUqA/edit
-
-### Railway Deployment Status ✅ DEPLOYED
-
-**Deployment Details**:
-- **Service URL**: https://web-production-d80eb.up.railway.app
-- **Project Name**: shimmering-eagerness
-- **Environment**: production
-- **Version**: 2.5-approval-workflow
-- **Database**: PostgreSQL (Railway-managed)
-- **Status**: ✅ ONLINE AND OPERATIONAL
-
-**Environment Variables Configured**:
-- `DATABASE_URL`: PostgreSQL connection string ✅
-- `TELEGRAM_BOT_TOKEN`: Bot authentication ✅
-- `GOOGLE_SHEETS_URL`: Spreadsheet link ✅
-- `DEBUG`: False (production) ✅
-- `PORT`: 8000 ✅
-
-**Verified Working Endpoints**:
-```bash
-✅ GET  /api/health → {"status": "ok", "database": "connected", "version": "2.5-approval-workflow"}
-✅ GET  /api/doctors → 3 Ukrainian doctors seeded
-✅ GET  /api/patients/pending → Returns pending patients
-✅ POST /webhook/telegram → Webhook active, 0 pending updates
+#### Dovidka Flow
+```
+User clicks "📄 Довідка" button in Slack
+    ↓
+Handle Dovidka (extract recordId, patientName)
+    ↓
+Get Patient Dovidka (Airtable - fetch full record)
+    ↓
+Format Dovidka Data (convert ALL CAPS workplace to Title Case)
+    ↓
+Copy Dovidka Template (Google Drive - copy template)
+    ↓
+Fill Dovidka (Google Docs - replace placeholders)
+    ↓
+Format Dovidka Response (build Slack message)
+    ↓
+Respond Dovidka (POST to response_url)
+    ↓
+Acknowledge Dovidka (200 OK)
 ```
 
-**Telegram Webhook**:
-- URL: https://web-production-d80eb.up.railway.app/webhook/telegram
-- Status: Active and configured
-- IP: 66.33.22.48
-- Max connections: 40
-- Pending updates: 0
+#### Dovidka Template Placeholders
+| Placeholder | Source |
+|-------------|--------|
+| `{{ДАТА}}` | Today's date (certificate issue date) |
+| `{{ПІБ}}` | ПІБ |
+| `{{Дата_народження}}` | Дата народження |
+| `{{Діагноз}}` | Повний діагноз / Діагноз |
+| `{{Дата_госпіталізації}}` | Дата госпіталізації |
+| `{{№_історії}}` | № історії |
+| `{{Хірург}}` | Хірург |
+| `{{Місце_роботи}}` | Заклад (Title Case formatted) |
+| `{{Signer1name}}` | Панфьоров С.В. |
+| `{{Signer2name}}` | Кондратов Д.С. |
+| `{{Signer3name}}` | Хірург (surgeon name) |
 
-### Deployment Timeline
+### Boars Slain 🐗
+1. **"Copy of undefined"** - documentURL expression fixed
+2. **"This operation is not supported"** - Template was .docx, converted to native Google Doc
+3. **Placeholder mismatch** - Aligned dovidka placeholders with 027/о format
+4. **ALL CAPS workplace** - Added Format Dovidka Data node with Title Case conversion
+5. **Broken flow connections** - Fixed: Format → Copy → Fill (was Format → Fill directly)
+6. **Wrong documentURL reference** - Changed `$('Copy Dovidka Template')` to `$json.id`
 
-| Time | Action | Status |
-|------|--------|--------|
-| 17:36 UTC | Initial Railway deployment | ✅ Complete |
-| 17:50 UTC | PostgreSQL provisioned | ✅ Complete |
-| 18:10 UTC | Environment variables set | ✅ Complete |
-| 18:20 UTC | Code deployed (v2.5) | ✅ Complete |
-| 18:33 UTC | Health check passed | ✅ Verified |
-| 18:33 UTC | Webhook configured | ✅ Verified |
-| 18:35 UTC | Production verification | ✅ Complete |
+### Files Modified
+- `cyberintern-boss/src/airtable_sync.py` - 12 new 027/о field mappings
+- `cyberintern-boss/src/main.py` - CyberIntern enrichment integration
+- `~/.zshrc` - ngrok auto-start in boss()
+- n8n MEGALITH 1 (3EMiulj7okbiy8zz) - Added Довідка button
+- n8n MEGALITH 6 (y2vWK35PLkwj8zDr) - Added 8 new nodes (Handle, Get Patient, Format Data, Copy, Fill, Format Response, Respond, Acknowledge)
 
-### Files Modified/Created
-
-**Cloud Server Updates**:
-- `zav_cloud_server.py` - Added approval workflow endpoints, Google Sheets sync trigger
-- `zav_sheets_sync.py` - Added daily/weekly operation sheet syncing
-- `zav_cli_interface.py` - Added approval commands for Claude CLI
-
-**Commits**:
-1. `fd824bf` - Fix: Add operation duration and surgeon name to operation sheets
-2. `53a603c` - Fix: Simplify weekly operation plan structure
-3. `abdaf9e` - Add Google Sheets integration with daily & weekly operation plans
-4. `f3ce0bb` - Fix: Capture external_doctor_chat_id in patient submission
-5. `ff898cb` - Brick 6: Add CLI commands for external patient approval
-6. `1ddad9b` - Brick 5: Add Telegram commands for approval workflow
-7. `d1331d0` - Brick 4: Add patient approval endpoints
-
-### Success Criteria Met
-
-✅ External/planned patients can be submitted via Telegram
-✅ Submissions stored with status='pending' and source='telegram'
-✅ Department head can review pending patients via Telegram OR CLI
-✅ Approval assigns: hospitalization date + doctor + operation slot
-✅ Notifications sent back to submitter (Ukrainian)
-✅ Google Sheets auto-update with daily/weekly operation plans
-✅ System deployed 24/7 on Railway cloud
-✅ PostgreSQL database operational
-✅ All endpoints verified working in production
-
-### Stream 6 Status
-
-**Implementation**: ✅ **COMPLETE**
-**Deployment**: ✅ **PRODUCTION - RAILWAY**
-**Testing**: ✅ **VERIFIED IN PRODUCTION**
-**Documentation**: ✅ **COMPREHENSIVE**
-**Integration**: ✅ **GOOGLE SHEETS + TELEGRAM + RAILWAY**
+### Files Created
+- `cyberintern-boss/src/cyberintern_enrichment.py` - CyberIntern API client and enrichment logic
 
 ---
 
-**Project Status**: ✅ **COMPLETE - ALL COMPONENTS DEPLOYED TO PRODUCTION**
-**Last Update**: December 18, 2025 (18:35 UTC)
-**Duration**: Session 5 - External Patient Workflow + Railway Deployment
-**All Tests**: 117/117 ✅ PASSING (Local Phases 1-3B)
-**Security**: ✅ HARDENED
-**Documentation**: ✅ COMPREHENSIVE (20+ files)
-**CLI Interface**: ✅ COMPLETE - Transform Claude into Zav
-**Cloud Deployment**: ✅ **DEPLOYED - PRODUCTION ON RAILWAY**
-**External Workflow**: ✅ **DEPLOYED - OPERATIONAL**
+## Completed Today (2026-01-25 Session 2) 🪓 DATA PURIFICATION HUNT
+
+### Data Validator ("The Great Boar Fence") ✅
+Created validation layer to ensure data quality before Airtable sync:
+
+**Required Fields (Block if missing):**
+- case_number
+- pib (patient name)
+- admission_date
+- birth_date
+
+**Important Fields (Warn if missing):**
+- doctor
+- ward
+
+**Data Cleaning:**
+- institution → ALL CAPS to Title Case (preserves abbreviations: ДУ, ТМО, МВС, НГУ)
+- workplace → ALL CAPS to Title Case
+
+#### Validation Results (44 patients):
+- ✅ 40 valid (can sync to Airtable)
+- 🚫 4 blocked (missing birth_date)
+- 🧹 20 cleaned (ALL CAPS fixed)
+- ⚠️ 2 with warnings (missing doctor)
+
+### Boss API Enhancement ✅
+- New endpoint: `GET /validate` - Returns validation report
+- Airtable sync now validates first, blocks invalid records
+- Returns detailed report: blocked patients, warnings, cleaned fields
+
+### Boss TUI Major Upgrade ✅
+**New Tabs:**
+- **[7] Sync** - Data validation dashboard showing:
+  - 4-box summary (Valid/Blocked/Cleaned/Warnings)
+  - Blocked patients list with error details
+  - Patients needing data hunt
+- **[8] Operations** - Today's surgery schedule from Airtable
+
+**Patient Detail Enhancement:**
+- Added 027/о enrichment fields to Diagnosis tab:
+  - Скарги (complaints)
+  - Анамнез хвороби (disease anamnesis)
+  - Об'єктивний стан (objective status)
+  - Лікування (treatment)
+  - Рекомендації (recommendations)
+
+**Patient Model Extended:**
+- Added 13 new fields for 027/о form data:
+  - address, complaints, disease_anamnesis, life_anamnesis
+  - objective_status, lab_tests, instrumental_tests
+  - consultations, treatment, treatment_result
+  - recommendations, sicklist_start, sicklist_end
+
+### Files Created
+- `cyberintern-boss/src/data_validator.py` - The Great Boar Fence (validation logic)
+- `boss-tui/src/ui/sync.rs` - Sync dashboard tab
+- `boss-tui/src/ui/operations.rs` - Operations tab
+- `boss-tui/src/models/validation.rs` - Validation response models
+
+### Files Modified
+- `cyberintern-boss/src/main.py` - Added /validate endpoint
+- `cyberintern-boss/src/airtable_sync.py` - Integrated validator
+- `boss-tui/src/app.rs` - Added Sync/Operations tabs, validation state
+- `boss-tui/src/api/boss.rs` - Added fetch_validation()
+- `boss-tui/src/models/mod.rs` - Added validation module
+- `boss-tui/src/models/patient.rs` - Added 027/о fields
+- `boss-tui/src/ui/mod.rs` - Added new tab modules
+- `boss-tui/src/ui/popup.rs` - Enhanced Diagnosis tab
+- `boss-tui/src/ui/footer.rs` - Added shortcuts for new tabs
+- `boss-tui/src/ui/help.rs` - Documented new tabs
+
+---
+
+## Boss TUI Masterplan Progress
+
+See: `/var/home/htsapenko/Projects/Zav/BOSS_TUI_MASTERPLAN.md`
+
+### Phase 0: Critical Fixes ✅
+- [x] **Fix Button 8** - `main.rs:148` - changed `'1'..='7'` to `'1'..='8'`
+
+### Phase 1: Power-On Sequence ✅ COMPLETE
+- [x] **tui-big-text 0.8** - ASCII art "ZAV" logo
+- [x] **throbber-widgets-tui 0.10** - Animated spinners
+- [x] **ratatui 0.30** - Updated for dependency compatibility
+- [x] **splash.rs module** - Full splash screen implementation
+- [x] **StartupPhase enum** - Logo → CheckingServices → LoadingData → Ready
+- [x] **Service checks** - Boss API, n8n, Airtable with animated status
+- [x] **Progress bar** - Shows loading progress during startup
+
+### Sprint 3: Wards Tab ✅ COMPLETE
+- [x] Created wards.rs module
+- [x] Added Tab::Wards (key '9', index 8)
+- [x] Ward grid layout with visual beds
+- [x] Navigation: Tab/Shift-Tab for wards, j/k for beds
+- [x] 'c' key cycles cleanliness (Clean → NeedsCleaning → Critical)
+- [x] Cleanliness persists to ~/.config/boss-tui/wards.json
+
+### Sprint 4: Visual Polish ✅ COMPLETE 2026-01-25
+- [x] **Sparkline in header** - Patient count trend (last 10 refreshes)
+- [x] **Table row highlighting** - ICU (red), VLK critical (yellow), alternating
+- [x] **Confirmation dialogs** - Shift+D shows confirm before discharge
+- [x] **Toast queue** - Multiple toasts stack (max 5, auto-dismiss 3s)
+- [x] **Better error display** - ErrorInfo with source/time, 'e' for detail popup
+
+---
+
+## Next Steps (Remaining from Plan)
+
+### Week 3: Slack Interactive - COMPLETE ✅
+- [x] Interactive Slack buttons - basic flow working
+- [x] VLK button → Modal with options (Schedule Tuesday/Friday OR Mark Done)
+- [x] VLK Done → Airtable update (Дата ВЛК, Рішення ВЛК, Дні продовження)
+- [x] VLK Done → Link to Airtable for document upload
+- [x] Streamlined discharge in Slack (button → Google Doc → done)
+
+### Week 4: TUI Improvements ✅ COMPLETE
+- [x] Operations tab in Boss TUI
+- [x] Sync/Validation dashboard
+- [x] Patient detail enrichment display
+- [x] Wards tab with visual layout
+- [x] Ward cleanliness colors (Green/Yellow/Red)
+- [x] Changing ward cleanliness via keyboard ('c')
+
+### Week 5: PDF Documents
+- [ ] PDF patient summary generation (need templates from user)
+
+### Later: Testing & Quality
+- [ ] Basic test suite for Boss API (pytest)
+- [ ] Audit logging for patient access
+
+---
+
+**Full documentation:** See `docs/` folder and `CLAUDE.md`

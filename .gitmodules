@@ -1,0 +1,3 @@
+[submodule "boss-tui"]
+	path = boss-tui
+	url = https://github.com/brnsmd/boss-tui.git
