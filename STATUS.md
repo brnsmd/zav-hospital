@@ -1,7 +1,106 @@
 # Zav Project Status
 
-**Updated:** 2026-01-25
+**Updated:** 2026-01-27
 **Status:** ✅ PRODUCTION READY
+
+---
+
+## 🪓 Session 2026-01-27: MEGALITH FIXES (Barbarian Mode)
+
+### Boars Slain 🐗
+
+#### Boar 1: Surgery Prefill Not Working
+**Problem:** `/surgery Семко` showed `№ і/х: -` and `Хірург: -` even though data exists.
+
+**Root Cause:** Format Surgery Response used `patient.fields?.['field']` but Airtable node returns fields directly on `patient['field']`.
+
+**Fix:** Added fallback pattern `const f = patient.fields || patient;`
+
+**Files Changed:**
+- MEGALITH 1: Format Surgery Response node
+
+---
+
+#### Boar 2: Date Format Chaos
+**Problem:** Dates displayed in mixed formats (YYYY-MM-DD, DD.MM.YYYY, etc.)
+
+**Fix:** Added `formatDate()` helper to convert all dates to DD.MM.YYYY:
+- MEGALITH 1: Format Patient Response
+- MEGALITH 6: Build Form URL Fill
+- MEGALITH 6: Fill 027 Generate (Випiska dates)
+
+---
+
+#### Boar 3: Field Rename № справи → № запису
+**Problem:** "№ справи" was confusing (case number vs history number).
+
+**Fix:**
+- Renamed Airtable field `№ справи` → `№ запису`
+- Updated Boss sync code to use new field name
+
+**Files Changed:**
+- Airtable field fldJXzYPQ1o6q0MKV renamed
+- `cyberintern-boss/src/airtable_sync.py` - updated all references
+
+---
+
+#### Boar 4: history_number Not Syncing to Airtable
+**Problem:** `history_number` from Boss DB wasn't being synced to Airtable `№ історії`.
+
+**Fix:** Added mapping in Boss sync:
+```python
+if boss_patient.get('history_number'):
+    airtable_fields['№ історії'] = boss_patient['history_number']
+```
+
+**Files Changed:**
+- `cyberintern-boss/src/airtable_sync.py`
+
+---
+
+#### Boar 5: Vypyska Link Broken (File Not Found)
+**Problem:** Generated Vypyska document link returned "file does not exist".
+
+**Root Cause:** Format Generate Response got `docId` from Fill 027 Generate (Google Docs update), which doesn't return the document ID.
+
+**Fix:** Get `docId` from Copy 027 Generate node instead:
+```javascript
+const copyResult = $('Copy 027 Generate').first().json;
+const docId = copyResult.id;
+```
+
+**Files Changed:**
+- MEGALITH 6: Format Generate Response node
+
+---
+
+#### Boar 6: New Field - Фіз. номер і.х
+**Problem:** Need physical history number field for outgoing documents.
+
+**Fix:** Added new field everywhere:
+- Airtable: `Фіз. номер і.х` (fld4cPVuiv8qJlSDY)
+- Boss DB: `physical_history_number` column
+- Boss sync: mapping added
+- Database schema: updated for new DBs
+
+**Files Changed:**
+- `cyberintern-boss/src/airtable_sync.py`
+- `cyberintern-boss/src/database.py`
+- Boss DB schema (ALTER TABLE)
+
+**Completed by Grug:** ✅ All tasks done!
+
+---
+
+### Summary of Changes
+
+| Component | Changes |
+|-----------|---------|
+| **MEGALITH 1** | Surgery prefill fix, date formatting, field access fallback |
+| **MEGALITH 6** | Vypyska link fix, date formatting in forms and documents |
+| **Airtable** | `№ справи` → `№ запису`, new `Фіз. номер і.х` field |
+| **Boss Sync** | Added `№ історії` and `Фіз. номер і.х` mappings |
+| **Boss DB** | Added `physical_history_number` column |
 
 ---
 
@@ -13,9 +112,85 @@
 | n8n | ✅ Active | localhost:5678 |
 | ngrok | ✅ Active | kristeen-rootlike-unflirtatiously.ngrok-free.dev |
 | Slack | ✅ Active | Zav Hospital workspace |
-| Boss API | ✅ Active | localhost:8083 (now with API key auth) |
+| Boss API | ✅ Active | localhost:8083 |
+| CyberIntern API | ⚠️ Needs Start | localhost:8082 (enrichment data) |
 | Boss TUI | ✅ Active | ~/Projects/boss-tui |
 | Zav Cloud | ✅ Active | zav-production.up.railway.app |
+
+---
+
+## 🪓 Session 2026-01-26: SYNC HUNT (Barbarian Mode)
+
+### Problem
+Boss → Airtable sync was failing silently. No data reaching Airtable.
+
+### Boars Slain 🐗
+
+#### Boar 1: Broken n8n Workflow
+**MEGALITH 5: Data Sync** (qVgYLgOSvNEWxWQN) was:
+- ❌ Using stale IP `192.168.4.233:8083` instead of localhost
+- ❌ Missing Airtable Create node (incomplete!)
+- ❌ Redundant - Boss API already has sync built-in
+
+**FIX:** Simplified to 2-node workflow:
+```
+Schedule Trigger (hourly) → HTTP POST localhost:8083/sync/airtable
+```
+
+#### Boar 2: Expired Airtable Token
+Old token `pat4ImGgwc...` returned 401 Unauthorized.
+
+**FIX:** Updated token in ALL env files:
+- `~/.config/zav-secrets.env`
+- `cyberintern/.env`
+- `cyberintern-boss/.env`
+- `boss-package/.env`
+
+New token: `patb7wwx4tT6b7tPy...`
+
+#### Boar 3: CyberIntern API Not Running
+Enrichment endpoint returned "CYBERINTERN_API_URL not configured".
+
+**FIX:**
+- Added `CYBERINTERN_API_URL=http://localhost:8082` to env files
+- Startup script already includes CyberIntern API startup
+
+### Sync Status After Fix
+```json
+{
+  "status": "completed",
+  "patients_found": 38,
+  "patients_updated": 38
+}
+```
+
+### Airtable 027/о Fields (ALREADY EXIST)
+| Field | ID |
+|-------|-----|
+| Скарги пацієнта | fldwprg4uk1WszL0S |
+| Анамнез хвороби | fldtNpottWthvSXiP |
+| Анамнез життя | fldu1NxtWCsX6bG4W |
+| Об'єктивний стан | fldrfZ8244xFyWGEt |
+| Лікування | fldsAUJhbRYvcBayr |
+| Рекомендації | fldpHWLlXI2yBAa5N |
+
+### Enrichment Pipeline Fixed
+**Problem:** `boss()` function in `~/.zshrc` was NOT starting CyberIntern API.
+
+**Fix:** Added CyberIntern API startup to `boss()` function (step 2).
+
+**New startup order:**
+1. n8n container
+2. CyberIntern API (8082) ← ADDED!
+3. Boss API (8083)
+4. ngrok
+5. Rebuild TUI
+6. Launch TUI
+
+### Next Steps for Enrichment
+1. Run `boss` (now starts CyberIntern API automatically!)
+2. Run `curl -X POST http://localhost:8083/sync/enrich-cyberintern`
+3. Run `curl -X POST http://localhost:8083/sync/airtable`
 
 ---
 
@@ -556,6 +731,12 @@ See: `/var/home/htsapenko/Projects/Zav/BOSS_TUI_MASTERPLAN.md`
 - [x] **StartupPhase::Transitioning** - New phase for fade effect
 - [x] **Fade-to-black transition** - 500ms QuadOut easing after "Ready!"
 - [x] **Graceful quit** - Can press 'q' during transition
+
+### Sprint 5: Advanced Features ✅ COMPLETE 2026-01-25
+- [x] **Sortable column indicators** - Headers show ▲/▼ for current sort (Name, Ward, Days)
+- [x] **Ward distribution BarChart** - Visual bar chart in Stats tab
+- [x] **Tab history (Backspace)** - Press Backspace to return to previous tab
+- [x] **Status line footer** - Shows Patients count, VLK critical, Ops count, sync time, version
 
 ### Sprint 3: Wards Tab ✅ COMPLETE
 - [x] Created wards.rs module

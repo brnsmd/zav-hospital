@@ -210,6 +210,7 @@ When using Key-Value body:
 | **ngrok** | kristeen-rootlike-unflirtatiously.ngrok-free.dev | Tunnel for Slack webhooks |
 | **Slack** | Zav Hospital workspace | #alerts, #operations, #admissions |
 | **Boss API** | localhost:8083 | EMR scraper, SQLite DB |
+| **CyberIntern API** | localhost:8082 | 027/о enrichment data (start with `boss`) |
 | **Boss TUI** | `~/Projects/boss-tui` | Terminal dashboard |
 | **Zav Cloud** | zav-production.up.railway.app | Web dashboard |
 
@@ -223,7 +224,7 @@ When using Key-Value body:
 | Operation plan | T2fTND8RQcNrx6jZc05Wh | Daily 12:00 | Google Sheets + Slack |
 | Surgery Checklist | sF3jem3G4RztR9su | Every 30 min | Slack #operations |
 | Operations | xBlSfRngiWvEyCFetoHjs | Airtable poll | Slack #operations |
-| Boss → Airtable Sync | 7wV_aGUYTN8q_qJHSs-gy | Scheduled | Airtable |
+| Boss → Airtable Sync (Simple) | qVgYLgOSvNEWxWQN | Hourly | POST to Boss API /sync/airtable |
 | Patient Discharge Hub | h3XuUfInGUY3DDgu | Webhook | Airtable + Slack |
 | **Slack: /patient** | SuPFqfszZvm7NrLs | Slack command | Slack (ephemeral) |
 | **Slack: /ops** | fVibWFfEsLG4lpg1 | Slack command | Slack (in_channel) |
@@ -696,6 +697,7 @@ N8N_URL=http://localhost:5678
 N8N_API_KEY=<key>
 AIRTABLE_TOKEN=<token>
 AIRTABLE_BASE=appv5BwoWyRhT6Lcr
+CYBERINTERN_API_URL=http://localhost:8082  # For 027/о enrichment
 SLACK_BOT_TOKEN=<token>
 NGROK_AUTHTOKEN=<token>
 ```

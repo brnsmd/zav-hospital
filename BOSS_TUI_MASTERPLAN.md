@@ -342,11 +342,11 @@ Show only relevant shortcuts for current state.
 4. [x] Implement toast queue ✅ 2026-01-25
 5. [x] Better error display ✅ 2026-01-25
 
-### Sprint 5: Advanced Features
-1. [ ] Sortable columns
-2. [ ] Bar charts in stats
-3. [ ] Keyboard navigation improvements
-4. [ ] Footer status line
+### Sprint 5: Advanced Features ✅ COMPLETE 2026-01-25
+1. [x] Sortable columns ✅ - Visual indicators (▲/▼) on sorted column headers
+2. [x] Bar charts in stats ✅ - Ward distribution BarChart widget
+3. [x] Keyboard navigation improvements ✅ - Backspace returns to previous tab
+4. [x] Footer status line ✅ - Patients/VLK/Ops counts + sync time + version
 
 ---
 
