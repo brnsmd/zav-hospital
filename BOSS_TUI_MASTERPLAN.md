@@ -420,4 +420,51 @@ throbber-widgets-tui = "0.7"
 
 ---
 
+## PHASE 9: RUST ALL-IN-ONE (Embedded Server) ✅ COMPLETE 2026-01-27
+
+### 9.1 Embedded API Server
+- [x] **src/server/mod.rs** - Server orchestration
+- [x] **src/server/db.rs** - SQLite database (50+ fields)
+- [x] **src/server/routes.rs** - 15 API endpoints
+
+### 9.2 Run Modes
+```bash
+./boss-tui              # TUI + Server (default)
+./boss-tui --server     # Server only
+./boss-tui --tui        # TUI only
+```
+
+### 9.3 Binary Stats
+- **Size:** 7.0MB
+- **Contains:** TUI + API Server + SQLite + HTTP Client
+- **Port:** 8083
+
+---
+
+## PHASE 10: RUST SCRAPER (The Final Hunt) - PLANNED
+
+### Goal
+Replace Python Playwright scraper with `chromiumoxide` (Rust CDP client).
+
+### Why
+- True single binary (no Python dependency)
+- Smaller footprint (~8MB vs ~50MB)
+- Direct function calls instead of subprocess
+
+### Implementation Plan
+See: `/var/home/htsapenko/Projects/Zav/RUST_SCRAPER_MIGRATION.md`
+
+### Steps
+1. [ ] Add `chromiumoxide = "0.7"` to Cargo.toml
+2. [ ] Create `src/scraper/` module structure
+3. [ ] Implement browser launch
+4. [ ] Implement login flow
+5. [ ] Implement patient list extraction
+6. [ ] Implement detail page extraction
+7. [ ] Update routes.rs to use Rust scraper
+8. [ ] Remove Python subprocess calls
+9. [ ] Test with real EMR
+
+---
+
 **GRUG READY? LET'S HUNT!** 🪓

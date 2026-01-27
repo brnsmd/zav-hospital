@@ -5,6 +5,81 @@
 
 ---
 
+## 🪓 Session 2026-01-27 Part 2: RUST ALL-IN-ONE (Barbarian Mode)
+
+### The Great Rust Consolidation 🦀
+
+**Goal:** Replace Python Boss API with embedded Rust server in boss-tui.
+
+### COMPLETED ✅
+
+#### 1. Git Repo Cleanup
+- Removed deprecated folders: `brood/`, `telegram_bot/`, `zav/`, old `zav_*.py` files
+- Converted loose repos into submodules:
+  - `boss-tui` (existing, now submodule)
+  - `cyberintern` (converted to submodule)
+  - `cyberintern-boss` (created repo, converted to submodule)
+- Archived old session transcripts to `archive/sessions/`
+
+#### 2. Complete Rust API Server
+**File changes:**
+- `boss-tui/src/server/db.rs` - **750 lines** - Complete SQLite layer with 50+ patient fields
+- `boss-tui/src/server/routes.rs` - **700 lines** - All 15 API endpoints
+- `boss-tui/src/server/mod.rs` - Updated AppState with current_sync_id
+
+**API Endpoints (matching Python exactly):**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Root info |
+| `/health` | GET | Health check |
+| `/stats` | GET | Database statistics |
+| `/patients` | GET | List all patients |
+| `/patients/{case_number}` | GET | Get single patient |
+| `/patients/{case_number}` | PATCH | Update manual fields |
+| `/patients/{case_number}/discharge` | POST | Discharge patient |
+| `/patients/by-doctor/{name}` | GET | Filter by doctor |
+| `/patients/by-ward/{ward}` | GET | Filter by ward |
+| `/sync` | POST | Start EMR sync |
+| `/sync/status` | GET | Sync status |
+| `/sync/enrich` | POST | EMR enrichment |
+| `/sync/enrich-cyberintern` | POST | CyberIntern enrichment |
+| `/sync/airtable` | POST | Airtable sync |
+| `/validate` | GET | Validation report |
+
+**Binary stats:**
+- Size: **7.0MB** (TUI + API + SQLite + HTTP client)
+- Port: 8083 (same as Python)
+- Database: Uses existing `./data/boss.db`
+
+#### 3. Windows Setup Scripts
+- `setup-windows.ps1` - Initial version with Chocolatey
+- `setup-windows-portable.ps1` - **Fully portable** version:
+  - Downloads Git, Python, Node, Rust to `E:\Zav\Tools`
+  - No C: drive usage
+  - Creates `start-zav.bat`, `stop-zav.bat`, `zav-shell.bat`
+- `WINDOWS_SETUP.md` - Documentation
+
+### PLANNED: Rust Scraper Migration 🦀
+
+**Next hunt:** Replace Python Playwright scraper with `chromiumoxide` (Rust CDP client).
+
+See: `/var/home/htsapenko/Projects/Zav/RUST_SCRAPER_MIGRATION.md`
+
+### Key Technical Decisions
+1. **Keep Python scraper for now** - Playwright has no pure Rust equivalent
+2. **chromiumoxide for future** - Rust Chrome DevTools Protocol client can replace Playwright
+3. **Subprocess calls** - Rust server calls Python scraper as subprocess until migration
+
+### Files Committed
+```
+10217ce feat: Complete Rust API server with full Python parity
+```
+
+### Parallel Work
+- **Another Claude** is migrating CyberIntern (027/о API) to Rust simultaneously
+
+---
+
 ## 🪓 Session 2026-01-27: MEGALITH FIXES (Barbarian Mode)
 
 ### Boars Slain 🐗
