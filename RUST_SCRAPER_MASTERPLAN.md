@@ -269,13 +269,39 @@ boss-tui/src/
 | Phase | Status | Notes |
 |-------|--------|-------|
 | 1. Foundation | ✅ COMPLETE | 2026-01-27 - chromiumoxide 0.7, module structure created |
-| 2. Login | 🟡 NEXT | |
-| 3. Patient List | ⚪ PLANNED | |
-| 4. Detail Page | ⚪ PLANNED | |
-| 5. Diagnosis | ⚪ PLANNED | |
-| 6. Batch Enrich | ⚪ PLANNED | |
-| 7. API Integration | ⚪ PLANNED | |
-| 8. Cleanup | ⚪ PLANNED | |
+| 2. Login | ✅ COMPLETE | 2026-01-27 - login() in mod.rs, form fill, role selection |
+| 3. Patient List | ✅ COMPLETE | 2026-01-27 - patients.rs, table extraction, pagination |
+| 4. Detail Page | ✅ COMPLETE | 2026-01-27 - enrichment.rs, field extraction |
+| 5. Diagnosis | ✅ COMPLETE | 2026-01-27 - diagnosis tab click + extraction in enrichment.rs |
+| 6. Batch Enrich | ✅ COMPLETE | 2026-01-27 - enrich_patients_batch() with rate limiting |
+| 7. API Integration | ⏸️ PAUSED | Server module not created - TUI-only for now |
+| 8. Cleanup | ⏸️ PAUSED | Pending API integration |
+
+### Session 2026-01-27 Summary
+
+**Files Created:**
+- `boss-tui/src/scraper/mod.rs` - 230 lines - EMRScraper struct, login, public API
+- `boss-tui/src/scraper/browser.rs` - 230 lines - Browser launch, navigate, JS eval
+- `boss-tui/src/scraper/types.rs` - 100 lines - ScrapedPatient, EnrichmentData, etc.
+- `boss-tui/src/scraper/patients.rs` - 250 lines - Table extraction, pagination
+- `boss-tui/src/scraper/enrichment.rs` - 300 lines - Detail page + diagnosis extraction
+
+**Total: ~1100 lines of Rust** replacing 845 lines of Python
+
+**What Works:**
+- Browser launches (headless/headed) via chromiumoxide
+- Login to EMR with credentials + role selection
+- Extract all patients from hospitalized table (with pagination)
+- Navigate to patient detail pages
+- Extract enrichment fields (birth_date, blood_type, address, etc.)
+- Click diagnosis tab and extract diagnosis text + ICD-10 codes
+- Batch enrichment with rate limiting
+
+**What's Missing:**
+- Server module (routes.rs, db.rs) for API endpoints
+- Integration with SQLite database
+- TUI integration (sync commands)
+- Real EMR testing
 
 ---
 

@@ -13,26 +13,32 @@
 
 **Tracking:** `/var/home/htsapenko/Projects/Zav/RUST_SCRAPER_MASTERPLAN.md`
 
-### PHASE 1: FOUNDATION ✅ COMPLETE
+### PHASES 1-6: SCRAPER CORE ✅ COMPLETE
 
-**Tasks Completed:**
-- [x] Added `chromiumoxide = "0.7"`, `futures = "0.3"`, `regex = "1"` to Cargo.toml
-- [x] Created `src/scraper/mod.rs` - EMRScraper struct, public API (stubs)
-- [x] Created `src/scraper/browser.rs` - Browser launch/close, navigation, JS eval
-- [x] Created `src/scraper/types.rs` - ScrapedPatient, EnrichmentData, SyncResult structs
-- [x] Integration test exists (marked `#[ignore]` - requires Chrome)
-- [x] Compiles successfully (dev + release)
+**All Extraction Logic Implemented:**
+- [x] Phase 1: Foundation - chromiumoxide 0.7, module structure
+- [x] Phase 2: Login - form fill, role selection, auth verification
+- [x] Phase 3: Patient List - table extraction, pagination (up to 50 pages)
+- [x] Phase 4: Detail Page - enrichment field extraction
+- [x] Phase 5: Diagnosis - tab click, diagnosis text + ICD-10 extraction
+- [x] Phase 6: Batch Enrich - rate-limited batch processing
 
 **Files Created:**
-- `boss-tui/src/scraper/mod.rs` - 210 lines
-- `boss-tui/src/scraper/browser.rs` - 190 lines
-- `boss-tui/src/scraper/types.rs` - 100 lines
+- `boss-tui/src/scraper/mod.rs` - 230 lines - EMRScraper, login, API
+- `boss-tui/src/scraper/browser.rs` - 230 lines - Browser lifecycle, JS eval
+- `boss-tui/src/scraper/types.rs` - 100 lines - Data types
+- `boss-tui/src/scraper/patients.rs` - 250 lines - Table extraction
+- `boss-tui/src/scraper/enrichment.rs` - 300 lines - Detail + diagnosis
 
-**Binary Impact:** TBD (chromiumoxide adds ~2MB to binary)
+**Total: ~1100 lines of Rust** (replaces 845 lines Python)
 
-### NEXT: PHASE 2 - LOGIN FLOW
+**Binary:** Compiles successfully (dev + release)
 
-See MASTERPLAN for full sprint plan.
+### PAUSED: PHASE 7-8 - API INTEGRATION
+
+Server module (routes.rs, db.rs) not created yet. Scraper is ready but not wired to API.
+
+See MASTERPLAN for full details.
 
 ---
 
