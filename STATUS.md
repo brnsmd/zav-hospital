@@ -5,6 +5,37 @@
 
 ---
 
+## 🪓 Session 2026-01-27 Part 3: RUST SCRAPER MIGRATION (Barbarian Mode)
+
+### The Final Hunt - Replace Python Scraper with Rust 🦀
+
+**Goal:** Replace Python Playwright scraper (845 lines) with pure Rust using `chromiumoxide`.
+
+**Tracking:** `/var/home/htsapenko/Projects/Zav/RUST_SCRAPER_MASTERPLAN.md`
+
+### PHASE 1: FOUNDATION ✅ COMPLETE
+
+**Tasks Completed:**
+- [x] Added `chromiumoxide = "0.7"`, `futures = "0.3"`, `regex = "1"` to Cargo.toml
+- [x] Created `src/scraper/mod.rs` - EMRScraper struct, public API (stubs)
+- [x] Created `src/scraper/browser.rs` - Browser launch/close, navigation, JS eval
+- [x] Created `src/scraper/types.rs` - ScrapedPatient, EnrichmentData, SyncResult structs
+- [x] Integration test exists (marked `#[ignore]` - requires Chrome)
+- [x] Compiles successfully (dev + release)
+
+**Files Created:**
+- `boss-tui/src/scraper/mod.rs` - 210 lines
+- `boss-tui/src/scraper/browser.rs` - 190 lines
+- `boss-tui/src/scraper/types.rs` - 100 lines
+
+**Binary Impact:** TBD (chromiumoxide adds ~2MB to binary)
+
+### NEXT: PHASE 2 - LOGIN FLOW
+
+See MASTERPLAN for full sprint plan.
+
+---
+
 ## 🪓 Session 2026-01-27 Part 2: RUST ALL-IN-ONE (Barbarian Mode)
 
 ### The Great Rust Consolidation 🦀
