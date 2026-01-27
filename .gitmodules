@@ -1,3 +1,9 @@
 [submodule "boss-tui"]
 	path = boss-tui
 	url = https://github.com/brnsmd/boss-tui.git
+[submodule "cyberintern-boss"]
+	path = cyberintern-boss
+	url = https://github.com/brnsmd/cyberintern-boss.git
+[submodule "cyberintern"]
+	path = cyberintern
+	url = https://github.com/brnsmd/CyberIntern.git
