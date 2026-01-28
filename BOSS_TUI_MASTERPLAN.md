@@ -441,7 +441,7 @@ throbber-widgets-tui = "0.7"
 
 ---
 
-## PHASE 10: RUST SCRAPER (The Final Hunt) - PLANNED
+## PHASE 10: RUST SCRAPER (The Final Hunt) ✅ COMPLETE 2026-01-28
 
 ### Goal
 Replace Python Playwright scraper with `chromiumoxide` (Rust CDP client).
@@ -451,19 +451,28 @@ Replace Python Playwright scraper with `chromiumoxide` (Rust CDP client).
 - Smaller footprint (~8MB vs ~50MB)
 - Direct function calls instead of subprocess
 
-### Implementation Plan
-See: `/var/home/htsapenko/Projects/Zav/RUST_SCRAPER_MIGRATION.md`
+### Implementation
+See: `/var/home/htsapenko/Projects/Zav/RUST_SCRAPER_MASTERPLAN.md`
 
-### Steps
-1. [ ] Add `chromiumoxide = "0.7"` to Cargo.toml
-2. [ ] Create `src/scraper/` module structure
-3. [ ] Implement browser launch
-4. [ ] Implement login flow
-5. [ ] Implement patient list extraction
-6. [ ] Implement detail page extraction
-7. [ ] Update routes.rs to use Rust scraper
-8. [ ] Remove Python subprocess calls
-9. [ ] Test with real EMR
+### Completed Steps
+1. [x] Add `chromiumoxide = "0.7"` to Cargo.toml ✅
+2. [x] Create `src/scraper/` module structure ✅
+3. [x] Implement browser launch ✅
+4. [x] Implement login flow ✅
+5. [x] Implement patient list extraction ✅
+6. [x] Implement detail page extraction ✅
+7. [x] Update routes.rs to use Rust scraper ✅
+8. [x] Remove Python subprocess calls ✅
+9. [ ] Test with real EMR (requires relay mode)
+
+### Files Created
+- `src/scraper/mod.rs` - EMRScraper, login, API (230 lines)
+- `src/scraper/browser.rs` - Browser lifecycle, JS eval (230 lines)
+- `src/scraper/types.rs` - Data types (100 lines)
+- `src/scraper/patients.rs` - Table extraction (250 lines)
+- `src/scraper/enrichment.rs` - Detail + diagnosis (300 lines)
+
+**Total: ~1100 lines of Rust replacing 845 lines of Python**
 
 ---
 
