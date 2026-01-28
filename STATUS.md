@@ -1,7 +1,36 @@
 # Zav Project Status
 
-**Updated:** 2026-01-27
+**Updated:** 2026-01-28
 **Status:** ✅ PRODUCTION READY
+
+---
+
+## 🪓 Session 2026-01-28: RUST SCRAPER API INTEGRATION (Barbarian Mode)
+
+### Phase 7: API Integration ✅ COMPLETE
+
+**Goal:** Wire Rust scraper to Boss API routes (replace Python subprocess).
+
+**Changes to `boss-tui/src/server/routes.rs`:**
+- Added conversion helpers: `scraped_to_db_patient()`, `apply_enrichment()`
+- Replaced Python subprocess in `perform_sync_task()` with `crate::scraper::run_sync()`
+- Replaced TODO in `perform_enrichment_task()` with full Rust scraper enrichment
+
+**API Endpoints Now Use Rust Scraper:**
+| Endpoint | Status |
+|----------|--------|
+| POST /sync | ✅ Uses Rust scraper |
+| POST /sync/enrich | ✅ Uses Rust scraper |
+
+**Build:** ✅ Compiles successfully
+
+### Remaining: Phase 8 - Real EMR Testing
+
+Need to test with actual EMR (requires Tailscale relay):
+```bash
+boss-relay
+curl -X POST http://localhost:8083/sync
+```
 
 ---
 
@@ -34,9 +63,9 @@
 
 **Binary:** Compiles successfully (dev + release)
 
-### PAUSED: PHASE 7-8 - API INTEGRATION
+### PHASE 7: API INTEGRATION ✅ COMPLETE
 
-Server module (routes.rs, db.rs) not created yet. Scraper is ready but not wired to API.
+Server module wired to Rust scraper. Python subprocess removed.
 
 See MASTERPLAN for full details.
 

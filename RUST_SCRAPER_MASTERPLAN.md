@@ -274,8 +274,8 @@ boss-tui/src/
 | 4. Detail Page | ✅ COMPLETE | 2026-01-27 - enrichment.rs, field extraction |
 | 5. Diagnosis | ✅ COMPLETE | 2026-01-27 - diagnosis tab click + extraction in enrichment.rs |
 | 6. Batch Enrich | ✅ COMPLETE | 2026-01-27 - enrich_patients_batch() with rate limiting |
-| 7. API Integration | ⏸️ PAUSED | Server module not created - TUI-only for now |
-| 8. Cleanup | ⏸️ PAUSED | Pending API integration |
+| 7. API Integration | ✅ COMPLETE | 2026-01-28 - routes.rs updated with Rust scraper |
+| 8. Cleanup | ⏸️ IN PROGRESS | Need real EMR testing |
 
 ### Session 2026-01-27 Summary
 
@@ -298,10 +298,33 @@ boss-tui/src/
 - Batch enrichment with rate limiting
 
 **What's Missing:**
-- Server module (routes.rs, db.rs) for API endpoints
-- Integration with SQLite database
-- TUI integration (sync commands)
-- Real EMR testing
+- Real EMR testing (relay mode required)
+
+### Session 2026-01-28: Phase 7 Complete
+
+**Changes to routes.rs:**
+- Added import: `use crate::scraper::{EMRCredentials, ScrapedPatient, EnrichmentData, DiagnosisData}`
+- Added `scraped_to_db_patient()` - converts ScrapedPatient to db::Patient
+- Added `apply_enrichment()` - applies enrichment data to Patient
+- Replaced Python subprocess in `perform_sync_task()` with `crate::scraper::run_sync()`
+- Replaced TODO in `perform_enrichment_task()` with full Rust scraper enrichment
+
+**Integration Flow:**
+```
+POST /sync → start_sync() → perform_sync_task()
+    ↓
+    EMRCredentials::from_env()
+    ↓
+    crate::scraper::run_sync(&credentials, headless)
+    ↓
+    scraped_to_db_patient() for each patient
+    ↓
+    db.upsert_patients_batch()
+    ↓
+    db.complete_sync()
+```
+
+**Build Result:** ✅ Compiles successfully (only unused function warnings)
 
 ---
 
