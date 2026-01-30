@@ -1,7 +1,155 @@
 # Zav Project Status
 
-**Updated:** 2026-01-28
+**Updated:** 2026-01-30
 **Status:** ✅ PRODUCTION READY
+
+---
+
+## 🪓 Session 2026-01-30: EMR DIARY SUBMISSION (Barbarian Mode)
+
+### EMR Diary Submission - DONE! ✅
+
+**Location:** `boss-tui/src/scraper/diary_submit.rs` (shared scraper, not duplicated)
+
+**Files Created:**
+| File | Lines | Purpose |
+|------|-------|---------|
+| `boss-tui/src/scraper/diary_submit.rs` | ~340 | EMR diary POST with CSRF management |
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| `boss-tui/src/scraper/mod.rs` | Added diary_submit module, CsrfTokenManager to EMRScraper |
+
+**What Works Now:**
+- ✅ CSRF token extraction from EMR pages (meta tag, cookie, form input)
+- ✅ Auto-refresh CSRF tokens (25-minute lifetime)
+- ✅ POST diary entries to `/api/v1/case/{case_id}/diary/`
+- ✅ `submit_diary()` method on EMRScraper
+- ✅ Convenience function `submit_diary_entry()` (login → submit → close)
+- ✅ Full test coverage (CSRF manager, payload serialization)
+
+**Design Decision:**
+- **Shared scraper approach**: EMR browser automation centralized in boss-tui
+- **No duplication**: cyberintern-tui calls boss-tui scraper (via API or library)
+- **Follows CLAUDE.md**: cyberintern-tui CLAUDE.md says "Do NOT implement browser automation"
+
+**Build:** ✅ SUCCESS (cargo check passes)
+
+**Completed Issue:** Zav-ue1 - CyberIntern: EMR Diary Submission
+
+---
+
+## 🪓 Session 2026-01-28 Part 3: ALERT SYSTEM HUNT COMPLETE! (Barbarian Mode)
+
+### Alert Generator Service - DONE! ✅🔥
+
+**Parallel Hunt Strategy:** Clug commanded, Clugagents executed in parallel!
+
+**Files Created:**
+| File | Lines | Purpose |
+|------|-------|---------|
+| `src/services/mod.rs` | 5 | Module declaration |
+| `src/services/alert_generator.rs` | ~330 | Sicklist + Labs alert generation |
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| `src/app.rs` | Wire up AlertGenerator in load_data() |
+| `src/main.rs` | Keyboard shortcuts: r=resolve, d=dismiss |
+| `src/db/alerts.rs` | Added create/resolve/dismiss methods |
+
+**What Works Now:**
+- ✅ TUI auto-generates sicklist alerts on load
+- ✅ Sicklist expiring today → medium priority
+- ✅ Sicklist overdue (1-3 days) → high priority
+- ✅ Labs >5 days → medium, >14 days → high (if lab_results table exists)
+- ✅ Auto-resolve when sicklist renewed
+- ✅ Press `r` on alert detail → resolve
+- ✅ Press `d` on alert detail → dismiss
+- ✅ Cleanup old alerts (>7 days)
+
+**GRUG PRINCIPLES FOLLOWED:**
+- No new dependencies (removed lazy_regex, used simple string splitting)
+- Simple date parsing with split_once()
+- No over-engineering
+
+**Build:** ✅ SUCCESS (57 warnings = old cruft, not our code)
+
+### Implementation Phases - UPDATED
+
+1. [x] **Phase 1: Alert Generator Service** ✅ COMPLETE
+   - [x] Sicklist alerts (expiration + overdue)
+   - [x] Labs alerts (warning + critical)
+   - [x] Auto-resolve stale alerts
+   - [x] Cleanup old pending alerts
+2. [x] **Phase 2: DB Extensions** ✅ COMPLETE
+   - [x] create_alert()
+   - [x] resolve_alert()
+   - [x] dismiss_alert()
+3. [ ] Phase 3: Slack Integration (FUTURE)
+4. [ ] Phase 4: Diary Template Generator (MAMMOTH - 80+ patterns)
+5. [ ] Phase 5: EMR Submission (chromiumoxide, relay mode)
+6. [x] **Phase 6: Wire up UI** ✅ COMPLETE
+   - [x] AlertGenerator called in load_data()
+   - [x] Keyboard shortcuts for resolve/dismiss
+
+---
+
+## 🪓 Session 2026-01-28 Part 2: CYBERINTERN TUI ALERTS PLAN (Barbarian Mode)
+
+### Task: Migrate CyberIntern Python Systems to Rust
+
+**Target:** `cyberintern-tui` (DOC mode - doctor's specific view)
+
+**Systems to migrate:**
+1. **Sicklist Alerts** - Track лікарняний expiration (day 0, -1, -2, -3+) ✅ DONE
+2. **Lab Alerts** - Track lab freshness (>5 days warning, >14 days critical) ✅ DONE
+3. **Batch Diary Writing** - Generate and submit diary entries from templates
+
+### What Already Exists in cyberintern-tui ✅
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Alert Model | ✅ | AlertType: SicklistOverdue, LabsOutdated, NeedsDiary, LkkDue, VlkDeadline |
+| Alert DB | ✅ | get_pending_alerts(), get_patient_alerts(), get_alert_stats() |
+| Diary Model | ✅ | DiaryType: Daily, Preop, Postop2h, Lkk, DischargeDiary |
+| Diary DB | ✅ | get_recent_diaries() |
+| UI Tabs | ✅ | Alerts tab, Diaries tab, Diary editor overlay |
+| **Alert Generator** | ✅ | **NEW!** services/alert_generator.rs |
+| **Alert CRUD** | ✅ | **NEW!** create/resolve/dismiss in db/alerts.rs |
+
+### What's MISSING (TO BUILD)
+
+| Component | Source (Python) | Target (Rust) | Status |
+|-----------|-----------------|---------------|--------|
+| Alert Generator | `alert_generator.py` | `services/alert_generator.rs` | ✅ DONE |
+| Diary Templates | `template_diary_generator.py` (1486 lines) | `services/diary_templates.rs` | ❌ TODO |
+| EMR Submission | `diary_service.py` (286 lines) | `emr/diary_submit.rs` | ❌ TODO |
+| Slack Integration | - | `services/slack.rs` | ❌ TODO |
+
+### Plan Document Created
+
+**Location:** `/var/home/htsapenko/Projects/Zav/CYBERINTERN_TUI_ALERTS_PLAN.md`
+**Task Specs:** `/var/home/htsapenko/Projects/cyberintern-tui/CLUGAGENT_TASKS.md`
+
+### Also Fixed Today: Boss TUI Discharged Tab ✅
+
+Added Discharged tab to Boss TUI:
+- Tab key: 2
+- Shows discharged patients separately
+- Patient detail popup works
+- Fixed validation parse error with `#[serde(default)]`
+
+**Files modified:**
+- `boss-tui/src/app.rs` - Added Tab::Discharged, discharged_patients vec
+- `boss-tui/src/api/boss.rs` - Changed to fetch ALL patients
+- `boss-tui/src/ui/discharged.rs` - NEW file
+- `boss-tui/src/ui/mod.rs` - Added discharged module
+- `boss-tui/src/ui/popup.rs` - Support discharged patients
+- `boss-tui/src/ui/footer.rs` - Added tab help
+- `boss-tui/src/main.rs` - Added key handlers
+- `boss-tui/src/models/validation.rs` - Fixed serde default
 
 ---
 
