@@ -241,7 +241,10 @@ futures = "0.3"
 
 ### System requirements:
 - Chrome/Chromium installed
-- Tailscale relay for EMR access
+- **Tailscale relay ONLY if accessing EMR from outside hospital network**
+  - Use `boss-relay` command when needed
+  - NOT required if already on hospital network
+  - NOT required for local testing
 
 ---
 

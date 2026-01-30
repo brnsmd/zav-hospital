@@ -34,6 +34,11 @@
 - **No duplication**: cyberintern-tui calls boss-tui scraper (via API or library)
 - **Follows CLAUDE.md**: cyberintern-tui CLAUDE.md says "Do NOT implement browser automation"
 
+**Network Access:**
+- **Tailscale relay (`boss-relay`) ONLY needed when accessing EMR from outside hospital network**
+- Direct access works fine when on hospital network or with public EMR access
+- Local testing doesn't require Tailscale
+
 **Build:** ✅ SUCCESS (cargo check passes)
 
 **Completed Issue:** Zav-ue1 - CyberIntern: EMR Diary Submission
