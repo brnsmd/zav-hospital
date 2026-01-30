@@ -131,3 +131,5 @@ conversation-*.txt
 *-caveat-*.txt
 *-perfect-*.txt
 archive/sessions/
+nurse-tui/target/
+*.txt
