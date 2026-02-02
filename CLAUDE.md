@@ -1,6 +1,30 @@
 # Zav Project - Claude Reference
 
-**Updated:** 2026-01-25
+**Updated:** 2026-01-30
+
+## 🎯 Issue Tracking & Project Memory
+
+**All issues tracked in Beads** (AI-native issue tracker in `.beads/`)
+
+```bash
+# View issues
+bd list              # All issues
+bd list --status open  # Active only
+
+# Work with issues
+bd show <issue-id>   # View details
+bd create "Task"     # New issue
+bd update <id> -s in_progress  # Start task
+bd update <id> -s closed       # Complete task
+```
+
+See `STATUS.md` for:
+- Current project status
+- System health
+- Active workflows
+- Historical epic list
+
+---
 
 ## Working with Claude
 
