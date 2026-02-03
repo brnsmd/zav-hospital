@@ -488,6 +488,7 @@ mod tests {
 - ✅ New wizard steps
 - ✅ Progress UI
 - ✅ Error handling & integration complete
+- ✅ Code audit by Opus (2 critical bugs fixed)
 
 ### Phase 5: Testing & Polish
 - ⏸️ VM testing
