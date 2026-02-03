@@ -1,7 +1,30 @@
 # Zav Project Status
 
-**Updated:** 2026-02-02
-**Status:** ✅ PRODUCTION READY
+**Updated:** 2026-02-03 12:15
+**Status:** ✅ PRODUCTION READY + INSTALLER COMPLETE
+
+---
+
+## 🚀 LATEST: Night Shift Complete (2026-02-03)
+
+**22 Opus Agents** deployed across 5 waves:
+- ✅ **ZAV Smart Installer** - Phase 1 & 2 complete (66 tests passing)
+- ✅ **Boss TUI Enhancements** - 6 tiers implemented (73 tests passing)
+- ✅ **Binaries Ready** - Linux builds tested, Windows pending
+- 📄 **Documentation** - Full guides in NIGHT_SHIFT_SUMMARY.md, BUILD_SUMMARY.md
+
+**New Capabilities:**
+- Audit trail logging (WHO/WHAT/WHEN)
+- Smart tables (sort/filter/multi-select)
+- Triage-style alerts (Critical/Warning/Info)
+- PDF generation (027/о, Довідка)
+- Ward 2D grid with arrow navigation
+- VLK timeline with progress bars
+- Auto-updater from GitHub
+- Graceful degradation with health tracking
+- Background prefetching for <50ms tab switches
+
+**See:** `WINDOWS_TEST_GUIDE.md` for testing checklist
 
 ---
 
@@ -71,9 +94,9 @@ bd update <issue-id> --status closed
 
 **Active Tasks**:
 - Zav-zaz: Test VLK reverse sync endpoint (P1)
-- Zav-8r1: Test CyberIntern enrichment endpoint (P1)
-- Zav-bf4: Test Airtable sync endpoint (P1) ✅ COMPLETE
-- Zav-bup: Test EMR sync endpoint (P2, in progress)
+- Zav-4u8: Boss TUI Tier 5 - Developer Experience (P2, deferred)
+- Zav-ww5: Phase 4 - Full Rust Stack Migration (P2, future)
+- Zav-jvk: Installer Phase 3 - CI/CD Pipeline (P2, pending Windows test)
 
 ---
 
