@@ -1,0 +1,124 @@
+========================================
+ZAV INSTALLER - USB COPY INSTRUCTIONS
+========================================
+
+WHAT'S READY
+-------------
+✅ Boss TUI with infection control zones (42MB)
+✅ ZAV Installer (30MB)
+✅ All source code
+✅ Installation guide for Windows
+✅ Quick reference card
+
+NEW FEATURES ADDED
+-------------------
+🟢 Infection Control Zones:
+   - Clean (ORIF, closed wounds)
+   - Medium (open wounds, not infected)
+   - Infected (infected wounds)
+
+🔄 Zone Transfer:
+   - Press 't' to mark patient for transfer
+   - Visual warnings for misplaced patients
+   - Color-coded by infection risk
+
+⚠️  Misplacement Detection:
+   - Warns if infected patient in clean zone
+   - Shows suggested zone for each patient
+   - Tracks pending transfers
+
+
+TO COPY EVERYTHING TO USB
+---------------------------
+
+1. Make sure USB drive is inserted
+   (Should appear as /dev/sda1)
+
+2. Run the copy script:
+
+   cd ~/Projects/Zav
+   ./copy_to_usb.sh
+
+3. Provide fingerprint/password when asked for sudo
+
+4. Wait for copy to complete (~2-3 minutes)
+
+5. Safely eject USB:
+
+   sudo umount /mnt/usb
+
+6. Unplug USB drive
+
+
+WHAT GETS COPIED
+-----------------
+📦 To USB:\ZAV\ directory:
+
+  ├── zav-installer\          Source code for installer
+  ├── boss-tui\               Source code for Boss TUI
+  ├── linux-binaries\         Pre-built binaries (for reference)
+  ├── INSTALL_WINDOWS.txt     Step-by-step Windows guide
+  └── QUICK_REFERENCE.txt     Keyboard shortcuts & features
+
+
+ON WINDOWS MACHINE
+-------------------
+1. Plug in USB drive
+2. Copy USB:\ZAV\ to C:\Dev\
+3. Read INSTALL_WINDOWS.txt
+4. Install Rust
+5. Build boss-tui
+6. Build installer
+7. Run installer
+8. Test features
+
+
+INFECTION ZONES USAGE
+----------------------
+After installation, in Boss TUI:
+
+1. Open Wards tab (press 3)
+2. See patients grouped by zone:
+   🟢 Clean | 🟡 Medium | 🔴 Infected
+3. Select patient with arrow keys
+4. Press 't' to mark for zone transfer
+5. Choose target zone (1/2/3)
+6. Patient marked with pending transfer indicator
+
+
+DISK SPACE NEEDED
+------------------
+USB drive:    ~500MB (source + binaries)
+Windows PC:   ~5GB (for Rust + build)
+
+
+TROUBLESHOOTING
+----------------
+USB not detected:
+  lsblk -f
+  (Look for /dev/sda1 or similar)
+
+Permission denied:
+  Make sure you ran with sudo:
+  sudo ./copy_to_usb.sh
+
+Script not executable:
+  chmod +x copy_to_usb.sh
+
+
+CONTENTS SUMMARY
+-----------------
+Source code projects:     2
+Installation guides:      2 (Windows + Quick Ref)
+Pre-built Linux binaries: 2 (for reference)
+Tests included:          123 (80 boss-tui + 43 installer)
+
+
+SUPPORT
+--------
+If Windows build fails, check INSTALL_WINDOWS.txt
+troubleshooting section for common issues.
+
+========================================
+Ready to copy when you are! 🦞
+========================================
