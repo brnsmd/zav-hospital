@@ -1,40 +1,312 @@
-{"id":"HQ4xE9PUa7nLREBI","name":"MEGALITH 4: Operations","nodes":[{"parameters":{"rule":{"interval":[{"field":"minutes","minutesInterval":30}]}},"id":"trigger-checklist","name":"Every 30 Min","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,300]},{"parameters":{"operation":"search","base":{"__rl":true,"value":"appv5BwoWyRhT6Lcr","mode":"id"},"table":{"__rl":true,"value":"tblZccmxy1DxtzIoc","mode":"id"},"filterByFormula":"AND(IS_SAME({Дата операції}, TODAY(), 'day'), {Статус}!='Виконано')","options":{}},"id":"get-pending-ops","name":"Get Pending Ops","type":"n8n-nodes-base.airtable","typeVersion":2,"position":[250,300],"credentials":{"airtableTokenApi":{"id":"oB0crB7qKyJOGI5a","name":"Airtable Personal Access Token account"}}},{"parameters":{"conditions":{"options":{"version":2,"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"combinator":"and","conditions":[{"leftValue":"={{ $input.all().length }}","rightValue":0,"operator":{"type":"number","operation":"gt"}}]},"options":{}},"id":"if-pending","name":"If Pending Ops","type":"n8n-nodes-base.if","typeVersion":2,"position":[470,300]},{"parameters":{"jsCode":"const ops = $input.all();
-const now = new Date();
-const hour = now.getHours();
-
-let text = `*ЧЕКЛІСТ ОПЕРАЦІЙ (${hour}:00)*\n\n`;
-text += `Залишилось: ${ops.length} операцій\n\n`;
-
-for (const o of ops) {
-  const f = o.json.fields ,"connections":,"settings": o.json;
-  const patient = f['Пацієнт'] || 'TBD';
-  const surgeon = f['Хірург'] || '-';
-  const time = f['Час'] || '-';
-  const status = f['Статус'] || 'Очікує';
-  
-  text += `*${patient}*\n`;
-  text += `   Хірург: ${surgeon} | Час: ${time}\n`;
-  text += `   Статус: ${status}\n\n`;
-}
-
-return [{ json: { text, channel: 'C0AACFEURNX' } }];"},"id":"format-checklist","name":"Format Checklist","type":"n8n-nodes-base.code","typeVersion":2,"position":[690,200]},{"parameters":{"select":"channel","channelId":{"__rl":true,"value":"={{ $json.channel }}","mode":"id"},"text":"={{ $json.text }}","otherOptions":{}},"id":"slack-checklist","name":"Post Checklist","type":"n8n-nodes-base.slack","typeVersion":2.2,"position":[910,200],"credentials":{"slackApi":{"id":"GPusGnt7OgWTPON9","name":"Slack account"}}},{"parameters":{"rule":{"interval":[{"field":"cronExpression","expression":"0 12 * * *"}]}},"id":"trigger-plan","name":"Daily 12 PM","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,600]},{"parameters":{"operation":"search","base":{"__rl":true,"value":"appv5BwoWyRhT6Lcr","mode":"id"},"table":{"__rl":true,"value":"tblZccmxy1DxtzIoc","mode":"id"},"filterByFormula":"IS_SAME({Дата операції}, DATEADD(TODAY(), 1, 'day'), 'day')","options":{}},"id":"get-tomorrow-ops","name":"Get Tomorrow Ops","type":"n8n-nodes-base.airtable","typeVersion":2,"position":[250,600],"credentials":{"airtableTokenApi":{"id":"oB0crB7qKyJOGI5a","name":"Airtable Personal Access Token account"}}},{"parameters":{"jsCode":"const ops = $input.all();
-const tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
-const dateStr = tomorrow.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });
-
-let text = `*ПЛАН ОПЕРАЦІЙ НА ${dateStr.toUpperCase()}*\n\n`;
-
-if (ops.length === 0) {
-  text += 'Операцій не заплановано';
-} else {
-  text += `Всього: ${ops.length} операцій\n\n`;
-  for (let i = 0; i < ops.length; i++) {
-    const f = ops[i].json.fields || ops[i].json;
-    text += `${i+1}. *${f['Пацієнт'] || 'TBD'}*\n`;
-    text += `   Операція: ${f['Назва операції'] || '-'}\n`;
-    text += `   Хірург: ${f['Хірург'] || '-'}\n`;
-    text += `   Час: ${f['Час'] || '-'}\n\n`;
+{
+  "id": "HQ4xE9PUa7nLREBI",
+  "name": "MEGALITH 4: Operations",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "trigger-checklist",
+      "name": "Every 30 Min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appv5BwoWyRhT6Lcr",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblZccmxy1DxtzIoc",
+          "mode": "id"
+        },
+        "filterByFormula": "AND(IS_SAME({Дата операції}, TODAY(), 'day'), {Статус}!='Виконано')",
+        "options": {}
+      },
+      "id": "get-pending-ops",
+      "name": "Get Pending Ops",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "oB0crB7qKyJOGI5a",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "if-pending",
+      "name": "If Pending Ops",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ops = $input.all();\nconst now = new Date();\nconst hour = now.getHours();\n\nlet text = `*ЧЕКЛІСТ ОПЕРАЦІЙ (${hour}:00)*\\n\\n`;\ntext += `Залишилось: ${ops.length} операцій\\n\\n`;\n\nfor (const o of ops) {\n  const f = o.json.fields || o.json;\n  const patient = f['Пацієнт'] || 'TBD';\n  const surgeon = f['Хірург'] || '-';\n  const time = f['Час'] || '-';\n  const status = f['Статус'] || 'Очікує';\n  \n  text += `*${patient}*\\n`;\n  text += `   Хірург: ${surgeon} | Час: ${time}\\n`;\n  text += `   Статус: ${status}\\n\\n`;\n}\n\nreturn [{ json: { text, channel: 'C0AACFEURNX' } }];"
+      },
+      "id": "format-checklist",
+      "name": "Format Checklist",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
+      },
+      "id": "slack-checklist",
+      "name": "Post Checklist",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        910,
+        200
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "GPusGnt7OgWTPON9",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-plan",
+      "name": "Daily 12 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appv5BwoWyRhT6Lcr",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblZccmxy1DxtzIoc",
+          "mode": "id"
+        },
+        "filterByFormula": "IS_SAME({Дата операції}, DATEADD(TODAY(), 1, 'day'), 'day')",
+        "options": {}
+      },
+      "id": "get-tomorrow-ops",
+      "name": "Get Tomorrow Ops",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        250,
+        600
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "oB0crB7qKyJOGI5a",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ops = $input.all();\nconst tomorrow = new Date();\ntomorrow.setDate(tomorrow.getDate() + 1);\nconst dateStr = tomorrow.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long' });\n\nlet text = `*ПЛАН ОПЕРАЦІЙ НА ${dateStr.toUpperCase()}*\\n\\n`;\n\nif (ops.length === 0) {\n  text += 'Операцій не заплановано';\n} else {\n  text += `Всього: ${ops.length} операцій\\n\\n`;\n  for (let i = 0; i < ops.length; i++) {\n    const f = ops[i].json.fields || ops[i].json;\n    text += `${i+1}. *${f['Пацієнт'] || 'TBD'}*\\n`;\n    text += `   Операція: ${f['Назва операції'] || '-'}\\n`;\n    text += `   Хірург: ${f['Хірург'] || '-'}\\n`;\n    text += `   Час: ${f['Час'] || '-'}\\n\\n`;\n  }\n}\n\nreturn [{ json: { text, channel: 'C0AACFEURNX' } }];"
+      },
+      "id": "format-plan",
+      "name": "Format Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
+      },
+      "id": "slack-plan",
+      "name": "Post Plan",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        690,
+        600
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "GPusGnt7OgWTPON9",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 30 Min": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Ops": {
+      "main": [
+        [
+          {
+            "node": "If Pending Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Pending Ops": {
+      "main": [
+        [
+          {
+            "node": "Format Checklist",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Format Checklist": {
+      "main": [
+        [
+          {
+            "node": "Post Checklist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 12 PM": {
+      "main": [
+        [
+          {
+            "node": "Get Tomorrow Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Tomorrow Ops": {
+      "main": [
+        [
+          {
+            "node": "Format Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Plan": {
+      "main": [
+        [
+          {
+            "node": "Post Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "Europe/Kyiv",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Every 30 Min": {
+      "recurrenceRules": []
+    },
+    "node:Daily 12 PM": {
+      "recurrenceRules": []
+    }
   }
 }
-
-return [{ json: { text, channel: 'C0AACFEURNX' } }];"},"id":"format-plan","name":"Format Plan","type":"n8n-nodes-base.code","typeVersion":2,"position":[470,600]},{"parameters":{"select":"channel","channelId":{"__rl":true,"value":"={{ $json.channel }}","mode":"id"},"text":"={{ $json.text }}","otherOptions":{}},"id":"slack-plan","name":"Post Plan","type":"n8n-nodes-base.slack","typeVersion":2.2,"position":[690,600],"credentials":{"slackApi":{"id":"GPusGnt7OgWTPON9","name":"Slack account"}}}]|{"Every 30 Min":{"main":[[{"node":"Get Pending Ops","type":"main","index":0}]]},"Get Pending Ops":{"main":[[{"node":"If Pending Ops","type":"main","index":0}]]},"If Pending Ops":{"main":[[{"node":"Format Checklist","type":"main","index":0}],[]]},"Format Checklist":{"main":[[{"node":"Post Checklist","type":"main","index":0}]]},"Daily 12 PM":{"main":[[{"node":"Get Tomorrow Ops","type":"main","index":0}]]},"Get Tomorrow Ops":{"main":[[{"node":"Format Plan","type":"main","index":0}]]},"Format Plan":{"main":[[{"node":"Post Plan","type":"main","index":0}]]}}|{"executionOrder":"v1","callerPolicy":"workflowsFromSameOwner","timezone":"Europe/Kyiv","availableInMCP":false}}

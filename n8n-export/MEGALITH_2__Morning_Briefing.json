@@ -1,57 +1,215 @@
-{"id":"tPAFIbMUNdlKG8nM","name":"MEGALITH 2: Morning Briefing","nodes":[{"parameters":{"rule":{"interval":[{"field":"cronExpression","expression":"0 7 * * *"}]}},"id":"trigger-morning","name":"Daily 7 AM","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,300]},{"parameters":{"operation":"search","base":{"__rl":true,"value":"appv5BwoWyRhT6Lcr","mode":"id"},"table":{"__rl":true,"value":"tblcMn6CHbW10pQfq","mode":"id"},"filterByFormula":"{Статус}!='Виписано'","options":{}},"id":"get-patients","name":"Get Patients","type":"n8n-nodes-base.airtable","typeVersion":2,"position":[250,200],"credentials":{"airtableTokenApi":{"id":"oB0crB7qKyJOGI5a","name":"Airtable Personal Access Token account"}}},{"parameters":{"operation":"search","base":{"__rl":true,"value":"appv5BwoWyRhT6Lcr","mode":"id"},"table":{"__rl":true,"value":"tblZccmxy1DxtzIoc","mode":"id"},"filterByFormula":"IS_SAME({Дата операції}, TODAY(), 'day')","options":{}},"id":"get-ops","name":"Get Today Ops","type":"n8n-nodes-base.airtable","typeVersion":2,"position":[250,400],"credentials":{"airtableTokenApi":{"id":"oB0crB7qKyJOGI5a","name":"Airtable Personal Access Token account"}}},{"parameters":{"mode":"combine","combineBy":"combineAll","options":{}},"id":"merge-data","name":"Merge Data","type":"n8n-nodes-base.merge","typeVersion":3,"position":[500,300]},{"parameters":{"jsCode":"const patients = $('Get Patients').all();
-const ops = $('Get Today Ops').all();
-
-const today = new Date();
-const dateStr = today.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
-let vlkCritical = [];
-let vlkWarning = [];
-let overstay = [];
-
-for (const p of patients) {
-  const f = p.json.fields ,"connections":,"settings": p.json;
-  const days = f['Дні з травми'] || 0;
-  const hospDays = f['Дні госпіталізації'] || 0;
-  const vlkStatus = f['ВЛК статус'] || '';
-  const name = f['ПІБ'] || 'Невідомо';
-  
-  if (!vlkStatus.includes('Пройдено')) {
-    if (days >= 120) vlkCritical.push({ name, days });
-    else if (days >= 100) vlkWarning.push({ name, days });
+{
+  "id": "tPAFIbMUNdlKG8nM",
+  "name": "MEGALITH 2: Morning Briefing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-morning",
+      "name": "Daily 7 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appv5BwoWyRhT6Lcr",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblcMn6CHbW10pQfq",
+          "mode": "id"
+        },
+        "filterByFormula": "{Статус}!='Виписано'",
+        "options": {}
+      },
+      "id": "get-patients",
+      "name": "Get Patients",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        250,
+        200
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "oB0crB7qKyJOGI5a",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appv5BwoWyRhT6Lcr",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblZccmxy1DxtzIoc",
+          "mode": "id"
+        },
+        "filterByFormula": "IS_SAME({Дата операції}, TODAY(), 'day')",
+        "options": {}
+      },
+      "id": "get-ops",
+      "name": "Get Today Ops",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        250,
+        400
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "oB0crB7qKyJOGI5a",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const patients = $('Get Patients').all();\nconst ops = $('Get Today Ops').all();\n\nconst today = new Date();\nconst dateStr = today.toLocaleDateString('uk-UA', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });\n\nlet vlkCritical = [];\nlet vlkWarning = [];\nlet overstay = [];\n\nfor (const p of patients) {\n  const f = p.json.fields || p.json;\n  const days = f['Дні з травми'] || 0;\n  const hospDays = f['Дні госпіталізації'] || 0;\n  const vlkStatus = f['ВЛК статус'] || '';\n  const name = f['ПІБ'] || 'Невідомо';\n  \n  if (!vlkStatus.includes('Пройдено')) {\n    if (days >= 120) vlkCritical.push({ name, days });\n    else if (days >= 100) vlkWarning.push({ name, days });\n  }\n  \n  if (hospDays >= 21) overstay.push({ name, days: hospDays });\n}\n\nlet text = `*РАНКОВИЙ БРИФІНГ - ${dateStr}*\\n\\n`;\ntext += `*Госпіталізовано:* ${patients.length} пацієнтів\\n\\n`;\n\nif (ops.length > 0) {\n  text += `*ОПЕРАЦІЇ СЬОГОДНІ (${ops.length}):*\\n`;\n  for (const o of ops) {\n    const f = o.json.fields || o.json;\n    text += `  - ${f['Пацієнт'] || 'TBD'} (${f['Хірург'] || '-'})\\n`;\n  }\n  text += '\\n';\n} else {\n  text += '*Операцій сьогодні немає*\\n\\n';\n}\n\nif (vlkCritical.length > 0) {\n  text += `*ПОТРІБНА ВЛК (${vlkCritical.length}):*\\n`;\n  for (const p of vlkCritical) text += `  - ${p.name} (${p.days} днів)\\n`;\n  text += '\\n';\n}\n\nif (vlkWarning.length > 0) {\n  text += `*До ВЛК (${vlkWarning.length}):*\\n`;\n  for (const p of vlkWarning) text += `  - ${p.name} (${p.days} днів)\\n`;\n  text += '\\n';\n}\n\nif (overstay.length > 0) {\n  text += `*ПЕРЕБУВАННЯ >21 день (${overstay.length}):*\\n`;\n  for (const p of overstay) text += `  - ${p.name} (${p.days} днів)\\n`;\n}\n\nreturn [{ json: { channel: 'C0AA2S3M0R5', text } }];"
+      },
+      "id": "format-briefing",
+      "name": "Format Briefing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {}
+      },
+      "id": "slack-post",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        940,
+        300
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "GPusGnt7OgWTPON9",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 7 AM": {
+      "main": [
+        [
+          {
+            "node": "Get Patients",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Today Ops",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Patients": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today Ops": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Format Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Briefing": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "Europe/Kyiv",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Daily 7 AM": {
+      "recurrenceRules": []
+    }
   }
-  
-  if (hospDays >= 21) overstay.push({ name, days: hospDays });
 }
-
-let text = `*РАНКОВИЙ БРИФІНГ - ${dateStr}*\n\n`;
-text += `*Госпіталізовано:* ${patients.length} пацієнтів\n\n`;
-
-if (ops.length > 0) {
-  text += `*ОПЕРАЦІЇ СЬОГОДНІ (${ops.length}):*\n`;
-  for (const o of ops) {
-    const f = o.json.fields || o.json;
-    text += `  - ${f['Пацієнт'] || 'TBD'} (${f['Хірург'] || '-'})\n`;
-  }
-  text += '\n';
-} else {
-  text += '*Операцій сьогодні немає*\n\n';
-}
-
-if (vlkCritical.length > 0) {
-  text += `*ПОТРІБНА ВЛК (${vlkCritical.length}):*\n`;
-  for (const p of vlkCritical) text += `  - ${p.name} (${p.days} днів)\n`;
-  text += '\n';
-}
-
-if (vlkWarning.length > 0) {
-  text += `*До ВЛК (${vlkWarning.length}):*\n`;
-  for (const p of vlkWarning) text += `  - ${p.name} (${p.days} днів)\n`;
-  text += '\n';
-}
-
-if (overstay.length > 0) {
-  text += `*ПЕРЕБУВАННЯ >21 день (${overstay.length}):*\n`;
-  for (const p of overstay) text += `  - ${p.name} (${p.days} днів)\n`;
-}
-
-return [{ json: { channel: 'C0AA2S3M0R5', text } }];"},"id":"format-briefing","name":"Format Briefing","type":"n8n-nodes-base.code","typeVersion":2,"position":[720,300]},{"parameters":{"select":"channel","channelId":{"__rl":true,"value":"={{ $json.channel }}","mode":"id"},"text":"={{ $json.text }}","otherOptions":{}},"id":"slack-post","name":"Post to Slack","type":"n8n-nodes-base.slack","typeVersion":2.2,"position":[940,300],"credentials":{"slackApi":{"id":"GPusGnt7OgWTPON9","name":"Slack account"}}}]|{"Daily 7 AM":{"main":[[{"node":"Get Patients","type":"main","index":0},{"node":"Get Today Ops","type":"main","index":0}]]},"Get Patients":{"main":[[{"node":"Merge Data","type":"main","index":0}]]},"Get Today Ops":{"main":[[{"node":"Merge Data","type":"main","index":1}]]},"Merge Data":{"main":[[{"node":"Format Briefing","type":"main","index":0}]]},"Format Briefing":{"main":[[{"node":"Post to Slack","type":"main","index":0}]]}}|{"executionOrder":"v1","callerPolicy":"workflowsFromSameOwner","timezone":"Europe/Kyiv","availableInMCP":false}}
