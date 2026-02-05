@@ -8,18 +8,22 @@ echo   ZAV BOSS HOSPITAL SERVER
 echo  ====================================
 echo.
 
-:: ============================================
-:: TOKENS - EDIT THESE:
-:: ============================================
-set AIRTABLE_TOKEN=YOUR_AIRTABLE_TOKEN
-set AIRTABLE_BASE=appv5BwoWyRhT6Lcr
-set N8N_API_KEY=YOUR_N8N_API_KEY_HERE
-:: ============================================
+:: Load secrets from secrets.bat (not committed to git)
+if exist secrets.bat (
+    call secrets.bat
+    echo  [OK] Secrets loaded from secrets.bat
+) else (
+    echo  [!] WARNING: secrets.bat not found!
+    echo      Create it with your AIRTABLE_TOKEN, AIRTABLE_BASE, N8N_API_KEY
+    echo.
+)
 
-:: URLs
+:: URLs (these are safe to commit)
 set BOSS_API_URL=http://localhost:8083
 set N8N_URL=http://localhost:5678
 set ZAV_DATABASE_PATH=C:\ZavBoss\data\zav.db
+set HOSPITAL_SUBNET=192.168.4.
+set HOSPITAL_GATEWAY=192.168.4.1
 
 echo [1/3] Starting n8n in background...
 start /B cmd /C "n8n start > nul 2>&1"
@@ -40,6 +44,7 @@ echo  Config:
 echo    BOSS API:  %BOSS_API_URL%
 echo    N8N:       %N8N_URL%
 echo    Airtable:  %AIRTABLE_BASE%
+echo    Subnet:    %HOSPITAL_SUBNET%
 echo.
 echo  ====================================
 echo  DO NOT CLOSE THIS WINDOW!

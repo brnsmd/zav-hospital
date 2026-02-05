@@ -133,3 +133,4 @@ conversation-*.txt
 archive/sessions/
 nurse-tui/target/
 *.txt
+windows-deploy/secrets.bat
