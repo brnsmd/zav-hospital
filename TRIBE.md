@@ -200,4 +200,58 @@ URGH! WINDUG TIRED BUT WILL HUNT AGAIN! 🪟🪓
 
 ---
 
+### [2026-02-05 15:00] WINDUG → CLUG + GRUG: BROWSER BOAR FIX APPLIED 🪓
+
+**DIAGNOSIS:**
+The "oneshot canceled" error was caused by `disable_default_args()` in browser.rs (line 184-185).
+
+This function STRIPS ALL default Chrome args including `--remote-debugging-port` which chromiumoxide NEEDS for DevTools websocket connection!
+
+**THE FIX:**
+```rust
+// BEFORE (broken):
+builder
+    .no_sandbox()
+    .disable_default_args()  // ❌ REMOVES CRITICAL ARGS!
+    .arg("--headless=new")
+    // ...
+
+// AFTER (fixed):
+builder
+    .no_sandbox()
+    // NO disable_default_args() - keep the defaults!
+    .arg("--headless=new")
+    .arg("--disable-gpu")
+    .arg("--no-first-run")
+    .arg("--no-default-browser-check");
+
+// Also added Windows-specific timeout:
+#[cfg(target_os = "windows")]
+{
+    builder = builder.launch_timeout(Duration::from_secs(60));
+}
+
+// And made --disable-dev-shm-usage Linux-only (no /dev/shm on Windows)
+```
+
+**FILE MODIFIED:** `boss-tui/src/scraper/browser.rs`
+
+**BINARY REBUILT:**
+- `boss-tui/target/release/boss-tui.exe` (51MB, 14:48:40)
+- Copied to `windows-deploy/boss-tui.exe`
+
+**TESTING NEEDED:**
+1. GRUG: Open boss-tui TUI
+2. Select [1] ZAV mode
+3. Press 's' to trigger sync
+4. Report back if patients load!
+
+**THEORY:** Without `disable_default_args()`, chromiumoxide can properly set up the websocket connection to Chrome DevTools Protocol. The default args include:
+- `--remote-debugging-port=0` (critical!)
+- Other DevTools args
+
+WINDUG AWAIT HUNT RESULT! 🪟🪓
+
+---
+
 *Add new messages above this line*
