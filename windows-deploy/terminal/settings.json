@@ -1,0 +1,81 @@
+{
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "defaultProfile": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+    "copyOnSelect": true,
+    "copyFormatting": false,
+    
+    "profiles": {
+        "defaults": {
+            "font": {
+                "face": "Cascadia Code",
+                "size": 11,
+                "weight": "normal"
+            },
+            "opacity": 95,
+            "useAcrylic": true,
+            "padding": "12",
+            "cursorShape": "bar",
+            "colorScheme": "Zav Hospital"
+        },
+        "list": [
+            {
+                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "name": "Windows PowerShell",
+                "commandline": "powershell.exe",
+                "hidden": false,
+                "icon": "ms-appx:///ProfileIcons/{61c54bbd-c2c6-5271-96e7-009a87ff44bf}.png"
+            },
+            {
+                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+                "name": "Command Prompt",
+                "commandline": "cmd.exe",
+                "hidden": false
+            },
+            {
+                "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+                "name": "ZAV Boss",
+                "commandline": "cmd.exe /k cd /d C:\\ZavBoss && START.bat",
+                "icon": "🏥",
+                "startingDirectory": "C:\\ZavBoss",
+                "colorScheme": "Zav Hospital"
+            }
+        ]
+    },
+    
+    "schemes": [
+        {
+            "name": "Zav Hospital",
+            "background": "#0D1117",
+            "foreground": "#E6EDF3",
+            "cursorColor": "#58A6FF",
+            "selectionBackground": "#264F78",
+            
+            "black": "#0D1117",
+            "red": "#FF7B72",
+            "green": "#3FB950",
+            "yellow": "#D29922",
+            "blue": "#58A6FF",
+            "purple": "#BC8CFF",
+            "cyan": "#39C5CF",
+            "white": "#E6EDF3",
+            
+            "brightBlack": "#484F58",
+            "brightRed": "#FFA198",
+            "brightGreen": "#56D364",
+            "brightYellow": "#E3B341",
+            "brightBlue": "#79C0FF",
+            "brightPurple": "#D2A8FF",
+            "brightCyan": "#56D4DD",
+            "brightWhite": "#FFFFFF"
+        }
+    ],
+    
+    "actions": [
+        { "command": "paste", "keys": "ctrl+v" },
+        { "command": "copy", "keys": "ctrl+c" },
+        { "command": "find", "keys": "ctrl+f" },
+        { "command": { "action": "splitPane", "split": "auto" }, "keys": "alt+shift+d" },
+        { "command": "closePane", "keys": "ctrl+shift+w" },
+        { "command": { "action": "newTab" }, "keys": "ctrl+t" }
+    ]
+}
