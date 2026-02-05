@@ -1,0 +1,23 @@
+{"id":"xffwNbs6pGhOzLnd","name":"MEGALITH 3: Patient Flow","nodes":[{"parameters":{"rule":{"interval":[{"field":"minutes","minutesInterval":5}]}},"id":"trigger-poll","name":"Every 5 Min","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,300]},{"parameters":{"operation":"search","base":{"__rl":true,"value":"appv5BwoWyRhT6Lcr","mode":"id"},"table":{"__rl":true,"value":"tblcMn6CHbW10pQfq","mode":"id"},"filterByFormula":"AND(IS_SAME({Дата госпіталізації}, TODAY(), 'day'), {Повідомлено}!=TRUE())","options":{}},"id":"get-new-patients","name":"Get New Patients","type":"n8n-nodes-base.airtable","typeVersion":2,"position":[250,300],"credentials":{"airtableTokenApi":{"id":"oB0crB7qKyJOGI5a","name":"Airtable Personal Access Token account"}}},{"parameters":{"conditions":{"options":{"version":2,"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"combinator":"and","conditions":[{"leftValue":"={{ $input.all().length }}","rightValue":0,"operator":{"type":"number","operation":"gt"}}]},"options":{}},"id":"if-new","name":"If New Patients","type":"n8n-nodes-base.if","typeVersion":2,"position":[470,300]},{"parameters":{"jsCode":"const patients = $input.all();
+let text = `*НОВІ НАДХОДЖЕННЯ (${patients.length}):*\n\n`;
+
+for (const p of patients) {
+  const f = p.json.fields ,"connections":,"settings": p.json;
+  text += `*${f['ПІБ'] || 'Невідомо'}*\n`;
+  text += `  Палата: ${f['Палата'] || '-'}\n`;
+  text += `  Діагноз: ${f['Діагноз'] || '-'}\n`;
+  text += `  Лікар: ${f['Лікар'] || '-'}\n\n`;
+}
+
+return [{ json: { text, channel: 'C0AAJSGLCPL' } }];"},"id":"format-admission","name":"Format Admission","type":"n8n-nodes-base.code","typeVersion":2,"position":[690,200]},{"parameters":{"select":"channel","channelId":{"__rl":true,"value":"={{ $json.channel }}","mode":"id"},"text":"={{ $json.text }}","otherOptions":{}},"id":"slack-admission","name":"Post Admission","type":"n8n-nodes-base.slack","typeVersion":2.2,"position":[910,200],"credentials":{"slackApi":{"id":"GPusGnt7OgWTPON9","name":"Slack account"}}},{"parameters":{"httpMethod":"POST","path":"patient-discharge","responseMode":"responseNode","options":{}},"id":"webhook-discharge","name":"Discharge Webhook","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,600],"webhookId":"patient-discharge"},{"parameters":{"jsCode":"const data = $input.first().json;
+
+const patientName = data.patient_name || data['ПІБ'] || 'Невідомо';
+const reason = data.reason || data['Причина виписки'] || '-';
+const date = data.discharge_date || new Date().toLocaleDateString('uk-UA');
+
+const text = `*ВИПИСКА ПАЦІЄНТА*\n\n` +
+  `Пацієнт: ${patientName}\n` +
+  `Причина: ${reason}\n` +
+  `Дата: ${date}\n`;
+
+return [{ json: { text, channel: 'C0AAJSGLCPL', response: { success: true } } }];"},"id":"format-discharge","name":"Format Discharge","type":"n8n-nodes-base.code","typeVersion":2,"position":[250,600]},{"parameters":{"select":"channel","channelId":{"__rl":true,"value":"={{ $json.channel }}","mode":"id"},"text":"={{ $json.text }}","otherOptions":{}},"id":"slack-discharge","name":"Post Discharge","type":"n8n-nodes-base.slack","typeVersion":2.2,"position":[470,600],"credentials":{"slackApi":{"id":"GPusGnt7OgWTPON9","name":"Slack account"}}},{"parameters":{"respondWith":"json","responseBody":"={{ $json.response }}","options":{}},"id":"respond-discharge","name":"Respond Discharge","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.1,"position":[690,600]}]|{"Every 5 Min":{"main":[[{"node":"Get New Patients","type":"main","index":0}]]},"Get New Patients":{"main":[[{"node":"If New Patients","type":"main","index":0}]]},"If New Patients":{"main":[[{"node":"Format Admission","type":"main","index":0}],[]]},"Format Admission":{"main":[[{"node":"Post Admission","type":"main","index":0}]]},"Discharge Webhook":{"main":[[{"node":"Format Discharge","type":"main","index":0}]]},"Format Discharge":{"main":[[{"node":"Post Discharge","type":"main","index":0}]]},"Post Discharge":{"main":[[{"node":"Respond Discharge","type":"main","index":0}]]}}|{"executionOrder":"v1","callerPolicy":"workflowsFromSameOwner","availableInMCP":false}}
