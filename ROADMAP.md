@@ -7,14 +7,14 @@
 
 ## P0 — MUST HAVE (System breaks without these)
 
-### [F01] Post-Sync Pipeline
-**Status:** NOT STARTED
+### [F01] Post-Sync Pipeline ✅
+**Status:** DONE (2026-02-06)
 **Why:** After EMR scrape, nothing happens automatically. User must manually trigger Airtable push, VLK pull, CyberIntern enrichment separately.
 **Fix:** After scrape completes, auto-chain: push to Airtable → pull VLK from Airtable → enrich from CyberIntern. Single pipeline, fires on every sync.
 **Files:** `src/server/routes.rs` (start_sync handler), `src/app.rs` (sync trigger)
 
-### [F02] Stale Data Indicator
-**Status:** NOT STARTED
+### [F02] Stale Data Indicator ✅
+**Status:** DONE (2026-02-06)
 **Why:** Patient safety. User sees patient list but has NO idea if data is 5 minutes or 5 hours old. `DataFreshness` model exists but UI doesn't show it prominently.
 **Fix:** Show "Last sync: X min ago" in header bar. Turn red if >60 min. Show "OFFLINE — cached data" when API unreachable.
 **Files:** `src/ui/header.rs`, `src/app.rs` (freshness tracking)
@@ -23,14 +23,14 @@
 
 ## P1 — IMPORTANT (System drifts without these)
 
-### [F03] VLK/Airtable Auto-Sync Timer
-**Status:** NOT STARTED
+### [F03] VLK/Airtable Auto-Sync Timer ✅
+**Status:** DONE (2026-02-06)
 **Why:** VLK cache columns exist in DB but nothing populates them. Airtable push is hourly via n8n but if n8n is down, data drifts.
 **Fix:** Internal tokio timer: every 30 min, POST to own `/sync/vlk-from-airtable` and `/sync/airtable`. Self-contained, no n8n dependency.
 **Files:** `src/app.rs` or `src/server/mod.rs` (spawn timer task)
 
-### [F04] Local SQLite Backup
-**Status:** NOT STARTED
+### [F04] Local SQLite Backup ✅
+**Status:** DONE (2026-02-06)
 **Why:** Single point of failure. `C:\ZavBoss\data\zav.db` dies = all enrichment, VLK cache, notes gone.
 **Fix:** On startup + every 6 hours, copy `zav.db` → `zav.db.bak` (timestamped, keep last 3).
 **Files:** `src/server/db.rs` (add backup method)
@@ -39,8 +39,8 @@
 
 ## P2 — VALUABLE (Replaces external dependencies)
 
-### [F05] Morning Report in TUI
-**Status:** NOT STARTED
+### [F05] Morning Report in TUI ✅
+**Status:** DONE (2026-02-06)
 **Why:** Doctor opens TUI at 7:30 AM, sees raw data. Morning briefing only goes to Slack via n8n. Doctor must check two places.
 **Fix:** On first launch or on-demand, show morning digest: VLK warnings, overstay alerts, today's operations, bed occupancy, new admissions since yesterday.
 **Files:** `src/ui/` (new morning report overlay), `src/app.rs`
