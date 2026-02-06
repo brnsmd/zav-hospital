@@ -55,26 +55,26 @@
 
 ## P3 — NICE TO HAVE (Clinical quality of life)
 
-### [F07] Surgery Checklist View
-**Status:** NOT STARTED
+### [F07] Surgery Checklist View ✅
+**Status:** DONE (2026-02-06)
 **Why:** Pre-op checklist goes to Slack every 30min. TUI has no surgery view. Doctor checks Slack instead of TUI.
 **Fix:** Operations tab shows today's surgeries with checkable items: consent (Y/N), labs fresh (Y/N), blood typed (Y/N), fasting confirmed (Y/N).
 **Files:** `src/ui/` (operations tab enhancement), `src/models/`
 
-### [F08] Patient Timeline / History
-**Status:** NOT STARTED
+### [F08] Patient Timeline / History ✅
+**Status:** DONE (2026-02-06)
 **Why:** Patient detail view shows current snapshot only. No history: when admitted, when VLK was scheduled, when enriched.
 **Fix:** Show chronological event log from date fields: admission → enrichment → VLK warning → VLK done → discharge.
 **Files:** `src/ui/` (patient detail enhancement)
 
-### [F09] Batch Discharge
-**Status:** NOT STARTED
+### [F09] Batch Discharge ✅
+**Status:** DONE (2026-02-06)
 **Why:** End of week, 5-8 patients discharge at once. Each one is manual select → action → confirm.
 **Fix:** Multi-select patients (checkboxes), confirm all at once. Generates all PDFs, triggers all webhooks.
 **Files:** `src/app.rs` (batch action mode), `src/ui/patients.rs`
 
-### [F10] Ward Transfer History
-**Status:** NOT STARTED
+### [F10] Ward Transfer History ✅
+**Status:** DONE (2026-02-06)
 **Why:** Zone transfer modal exists but no log. Patient moves wards, old assignment vanishes. No audit trail for infection control.
 **Fix:** New `ward_transfers` table: (patient, from_ward, from_bed, to_ward, to_bed, timestamp, reason). Show in patient detail.
 **Files:** `src/server/db.rs` (new table), `src/ui/` (transfer log display)
