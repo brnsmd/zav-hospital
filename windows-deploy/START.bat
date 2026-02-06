@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul 2>&1
 title ZAV BOSS - Hospital Server
 cd /d "%~dp0"
 
@@ -19,17 +20,21 @@ if exist secrets.bat (
 )
 
 :: URLs (these are safe to commit)
-set BOSS_API_URL=http://localhost:8083
-set N8N_URL=http://localhost:5678
+set BOSS_API_URL=http://127.0.0.1:8084
+set N8N_URL=http://127.0.0.1:5678
 set ZAV_DATABASE_PATH=C:\ZavBoss\data\zav.db
 set HOSPITAL_SUBNET=192.168.4.
 set HOSPITAL_GATEWAY=192.168.4.1
 
-echo [1/3] Starting n8n in background...
+:: Browser mode (true=headless, false=show window)
+set BOSS_HEADLESS=true
+set RUST_LOG=boss_tui=debug,chromiumoxide=info
+
+echo [1/4] Starting n8n in background...
 start /B cmd /C "n8n start > nul 2>&1"
 timeout /t 5 /nobreak > nul
 
-echo [2/3] Checking n8n...
+echo        Checking n8n...
 curl -s http://localhost:5678/healthz > nul 2>&1
 if %errorlevel%==0 (
     echo       n8n: OK
@@ -38,7 +43,16 @@ if %errorlevel%==0 (
     timeout /t 10 /nobreak > nul
 )
 
-echo [3/3] Starting Boss TUI...
+echo [2/4] Starting ngrok tunnel in background...
+start /B cmd /C "ngrok http 5678 --domain=kristeen-rootlike-unflirtatiously.ngrok-free.dev > nul 2>&1"
+echo       ngrok: Started
+
+echo [3/4] Starting CyberIntern in background...
+set CYBERINTERN_DIR=%~dp0..\cyberintern
+start /B cmd /C "cd /d %CYBERINTERN_DIR% && python -m uvicorn main:app --host 0.0.0.0 --port 8082 > nul 2>&1"
+echo       CyberIntern: Started (port 8082)
+
+echo [4/4] Starting Boss TUI...
 echo.
 echo  Config:
 echo    BOSS API:  %BOSS_API_URL%
@@ -54,7 +68,9 @@ echo.
 boss-tui.exe
 
 echo.
-echo Stopping n8n...
+echo Stopping services...
 taskkill /F /IM node.exe > nul 2>&1
-echo Server stopped.
+taskkill /F /IM ngrok.exe > nul 2>&1
+taskkill /F /IM python.exe > nul 2>&1
+echo Services stopped.
 pause
