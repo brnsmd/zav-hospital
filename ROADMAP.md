@@ -45,8 +45,8 @@
 **Fix:** On first launch or on-demand, show morning digest: VLK warnings, overstay alerts, today's operations, bed occupancy, new admissions since yesterday.
 **Files:** `src/ui/` (new morning report overlay), `src/app.rs`
 
-### [F06] Local Discharge PDF Path (Cut Google Docs)
-**Status:** PARTIALLY DONE (PDF gen wired to quick actions)
+### [F06] Local Discharge PDF Path (Cut Google Docs) ✅
+**Status:** DONE (2026-02-06)
 **Why:** Discharge needs: TUI → n8n → Slack → Google Docs → Airtable. If Slack/n8n/Google down, discharge stalls.
 **Fix:** TUI generates 027/о locally via Typst (ALREADY WORKS) → upload PDF directly to Airtable attachment field. Bypasses n8n + Google Docs + Slack entirely.
 **Files:** `src/app.rs` (discharge quick action), `src/sync/airtable.rs` (attachment upload)
@@ -79,8 +79,8 @@
 **Fix:** New `ward_transfers` table: (patient, from_ward, from_bed, to_ward, to_bed, timestamp, reason). Show in patient detail.
 **Files:** `src/server/db.rs` (new table), `src/ui/` (transfer log display)
 
-### [F11] Health Dashboard in TUI
-**Status:** NOT STARTED
+### [F11] Health Dashboard in TUI ✅
+**Status:** DONE (2026-02-06)
 **Why:** After startup splash, no way to see if n8n/Airtable/CyberIntern are up without leaving TUI.
 **Fix:** Status bar or health indicator showing service states. Ping endpoints periodically.
 **Files:** `src/app.rs` (health check timer), `src/ui/header.rs` (status icons)
