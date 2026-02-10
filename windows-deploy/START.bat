@@ -14,9 +14,12 @@ if exist secrets.bat (
     call secrets.bat
     echo  [OK] Secrets loaded from secrets.bat
 ) else (
-    echo  [!] WARNING: secrets.bat not found!
+    echo  [!] ERROR: secrets.bat not found!
     echo      Create it with your AIRTABLE_TOKEN, AIRTABLE_BASE, N8N_API_KEY
+    echo      System cannot run properly without credentials.
     echo.
+    echo  Press any key to continue anyway, or close this window to abort.
+    pause > nul
 )
 
 :: URLs (these are safe to commit)
@@ -30,6 +33,7 @@ set HOSPITAL_GATEWAY=192.168.4.1
 set BOSS_HEADLESS=true
 set RUST_LOG=boss_tui=debug,chromiumoxide=info
 
+:: Store PIDs for targeted cleanup
 echo [1/4] Starting n8n in background...
 start /B cmd /C "n8n start > nul 2>&1"
 timeout /t 5 /nobreak > nul
@@ -41,6 +45,13 @@ if %errorlevel%==0 (
 ) else (
     echo       n8n: Starting... please wait
     timeout /t 10 /nobreak > nul
+    curl -s http://localhost:5678/healthz > nul 2>&1
+    if %errorlevel%==0 (
+        echo       n8n: OK
+    ) else (
+        echo       n8n: Still starting... waiting more
+        timeout /t 10 /nobreak > nul
+    )
 )
 
 echo [2/4] Starting ngrok tunnel in background...
@@ -57,7 +68,6 @@ echo.
 echo  Config:
 echo    BOSS API:  %BOSS_API_URL%
 echo    N8N:       %N8N_URL%
-echo    Airtable:  %AIRTABLE_BASE%
 echo    Subnet:    %HOSPITAL_SUBNET%
 echo.
 echo  ====================================
@@ -65,12 +75,15 @@ echo  DO NOT CLOSE THIS WINDOW!
 echo  ====================================
 echo.
 
-boss-tui.exe
+ZAV.exe
 
 echo.
 echo Stopping services...
-taskkill /F /IM node.exe > nul 2>&1
+:: Kill only our specific processes by window title/port, not all node/python
+:: ngrok is safe to kill globally (only one instance)
 taskkill /F /IM ngrok.exe > nul 2>&1
-taskkill /F /IM python.exe > nul 2>&1
+:: Kill n8n (node on port 5678) and CyberIntern (python on port 8082)
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5678.*LISTENING" 2^>nul') do taskkill /F /PID %%a > nul 2>&1
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8082.*LISTENING" 2^>nul') do taskkill /F /PID %%a > nul 2>&1
 echo Services stopped.
 pause

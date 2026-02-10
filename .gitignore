@@ -78,6 +78,14 @@ google_sheets_creds.json
 # OS
 .DS_Store
 Thumbs.db
+nul
+
+# Lock files
+.beads/*.lock
+
+# Compiled binaries
+*.exe
+windows-deploy/*.exe
 
 # Node (if using frontend)
 node_modules/
