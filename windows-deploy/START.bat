@@ -60,13 +60,16 @@ echo       ngrok: Started
 
 echo [3/4] Starting CyberIntern in background...
 set CYBERINTERN_DIR=%~dp0..\cyberintern
-start /B cmd /C "cd /d %CYBERINTERN_DIR% && python -m uvicorn main:app --host 0.0.0.0 --port 8082 > nul 2>&1"
+set CYBERINTERN_API_URL=http://127.0.0.1:8082
+start /B cmd /C "cd /d %CYBERINTERN_DIR% && python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8082 > nul 2>&1"
+timeout /t 3 /nobreak > nul
 echo       CyberIntern: Started (port 8082)
 
 echo [4/4] Starting Boss TUI...
 echo.
 echo  Config:
 echo    BOSS API:  %BOSS_API_URL%
+echo    CI API:    %CYBERINTERN_API_URL%
 echo    N8N:       %N8N_URL%
 echo    Subnet:    %HOSPITAL_SUBNET%
 echo.
