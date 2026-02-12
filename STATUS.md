@@ -1,11 +1,57 @@
 # Zav Project Status
 
-**Updated:** 2026-02-03 12:15
-**Status:** ✅ PRODUCTION READY + INSTALLER COMPLETE
+**Updated:** 2026-02-12 22:00
+**Status:** ✅ PRODUCTION + MAJOR AUDIT FIXES DEPLOYED
 
 ---
 
-## 🚀 LATEST: Night Shift Complete (2026-02-03)
+## 🔧 LATEST: 4-Team Opus Audit Sprint (2026-02-12)
+
+**4 Opus Investigation Teams** deployed in parallel:
+- **Team Alpha (Bugs)**: Found 16 bugs (2 P0, 3 P1, 4 P2, 7 P3)
+- **Team Bravo (UX)**: Found 46 UX issues (2 CRITICAL, 8 MEDIUM)
+- **Team Charlie (UI)**: Found 22 UI issues (3 HIGH, 7 MEDIUM)
+- **Team Delta (Data Flow)**: Found 9 data integrity + 8 security issues
+
+**Fixed in this sprint:**
+
+### Sync Pipeline (was completely broken):
+- Concurrent sync guard (reject if already running)
+- sync_running flag properly toggled (was never set)
+- Health check timeout (5s, was infinite)
+- CI client: auth optional, page_size=100 pagination
+- Direct CI ID enrichment (eliminated failing re-search)
+- Status field in INSERT/UPDATE (discharged patients now tracked)
+- COALESCE for doctor/ward/bed (prevents NULL overwrites on re-sync)
+- fetch_patients uses hospitalized_only=false (TUI gets all patients)
+- Discharge invalidates all caches
+
+### Data Flow (enrichment was incomplete):
+- surgical_treatment now included in treatment (was dropped)
+- instrumental_tests now maps xray+additional_methods (was duplicate of analyses)
+- workplace + discharge_date added to TUI model (was lost at API boundary)
+- Certificate PDF now gets workplace from patient data
+- All 12 enrichment fields displayed in CyberIntern popup tab
+
+### UX/UI:
+- Popup sub-tab keys 1-6 wired in ZAV mode
+- Help popup corrected (wrong tab numbers, removed dead N8N section)
+- Shortcuts hint "1-4" -> "1-6"
+- Empty state for discharged tab
+- UTF-8 safe truncation (prevents panic on Ukrainian text)
+- G key for jump-to-bottom in popup
+
+### Known Issues (not yet fixed):
+- SEC-01: No API key validation on server routes
+- SEC-03: Passwords stored plaintext in SQLite
+- DATA-02: 027/o PDF still missing 8 clinical narrative fields
+- UX-22: `d` key force-discharges without confirmation
+- UI-03: highlight_symbol column overflow
+- UI-17: Operations table not selectable
+
+---
+
+## 🚀 Night Shift Complete (2026-02-03)
 
 **22 Opus Agents** deployed across 5 waves:
 - ✅ **ZAV Smart Installer** - Phase 1 & 2 complete (66 tests passing)
