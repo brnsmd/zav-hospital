@@ -1,6 +1,152 @@
 # Zav Project - Claude Reference
 
-**Updated:** 2026-01-30
+**Updated:** 2026-02-13
+
+---
+
+## 🔴🔴🔴 CRITICAL: WINDUG MODE — READ THIS FIRST 🔴🔴🔴
+
+**Date:** 2026-02-13
+**Status:** SYNC IS BROKEN. ENRICHMENT DOES NOT WORK. MULTIPLE SESSIONS FAILED TO FIX IT.
+
+### THE RULES (NON-NEGOTIABLE):
+
+1. **BEADS FOR EVERY STEP.** Before you touch ANY code:
+   - `bd create "What I'm about to do"` → get an issue ID
+   - `bd update <id> -s in_progress` → start work
+   - Do the work. Verify it works. Commit.
+   - `bd update <id> -s closed` → done
+   - **NO EXCEPTIONS. If you skip beads, you get stopped.**
+
+2. **READ BEFORE WRITE.** You do NOT write a single line of code until you have READ the file you're changing and can explain what every line does. No guessing. No "this should work." READ IT.
+
+3. **VERIFY AT RUNTIME.** After every change:
+   - Build (debug is fine)
+   - Deploy to `windows-deploy/boss-tui.exe`
+   - Test the actual behavior (curl, logs, TUI interaction)
+   - If it doesn't work, READ MORE CODE, don't guess harder
+
+4. **ONE FIX AT A TIME.** No batch fixes. No "let me fix 6 bugs at once." Fix ONE thing. Verify it works. Commit. Next.
+
+5. **GIT AFTER EVERY VERIFIED FIX.** Every fix that is confirmed working gets its own commit with a descriptive message.
+
+### WHAT IS BROKEN (as of 2026-02-13):
+
+**Primary:** Pressing `s` in the TUI to sync does nothing visible. Patients don't load from CyberIntern. Enrichment data is empty. Discharged patients don't appear in tab 8.
+
+**Root cause:** UNKNOWN. Previous sessions applied ~30 fixes based on code reading but never verified runtime behavior. The fixes may be correct but something in the chain is still broken.
+
+### THE AUDIT PLAN:
+
+**Phase 1: Verify the launch chain**
+- Read `windows-deploy/START.bat` line by line
+- Read `zav-launcher/src/main.rs` line by line
+- Verify env vars (ZAV_DATABASE_PATH, CYBERINTERN_API_URL, BOSS_API_URL) are set
+- Verify boss-tui.exe starts and creates the DB
+
+**Phase 2: Verify CyberIntern is alive**
+- `curl http://localhost:8082/mcp/health`
+- `curl http://localhost:8082/api/patients?page_size=5`
+- Document exactly what CI returns
+
+**Phase 3: Trace the `s` key press**
+- Read `main.rs` event loop — find exactly where `s` is handled
+- Read `app.rs` — find `trigger_boss_sync()` or equivalent
+- Read `api/boss.rs` — find the actual HTTP call to the server
+- `curl -X POST http://localhost:8084/sync` — verify server response
+- Read `server/routes/sync.rs` — trace `start_sync()` line by line
+
+**Phase 4: Verify data flow**
+- After sync: `sqlite3 C:\ZavBoss\data\zav.db "SELECT count(*) FROM patients"`
+- Check if patients have enrichment fields populated
+- Verify TUI refreshes and displays updated data
+
+**Phase 5: Evaluate Maxun for EMR**
+- Research Maxun (github.com/getmaxun/maxun) as structured EMR API
+- Compare with current CyberIntern scraper approach
+- Decision: replace CyberIntern or keep it
+
+### WHAT THE PREVIOUS SESSION DID (may or may not be working):
+
+**Files changed in boss-tui commit `1e2eb3a`:**
+- `src/server/routes/sync.rs` — rewrote start_sync() and perform_ci_import()
+- `src/sync/cyberintern.rs` — auth optional, page_size=100, 30s timeout
+- `src/server/db.rs` — status in INSERT/UPDATE, COALESCE for doctor/ward/bed
+- `src/api/boss.rs` — hospitalized_only=false, trigger_sync checks is_success()
+- `src/models/patient.rs` — added workplace, discharge_date
+- `src/app.rs` — PopupTab::from_key(), workplace in certificate PDF
+- `src/main.rs` — popup 1-6 keys, G for bottom
+- `src/ui/popup.rs` — 12 enrichment fields in CyberIntern tab, UTF-8 safe
+- `src/ui/help.rs` — corrected tab numbers
+- `src/ui/shortcuts.rs` — "1-6" instead of "1-4"
+- `src/ui/discharged.rs` — empty state message
+
+**Database:** `C:\ZavBoss\data\zav.db` was DELETED on 2026-02-13. Fresh DB.
+
+### PROJECT LAYOUT:
+
+```
+E:\zav-hospital\                     # Parent monorepo
+├── boss-tui/                        # Rust TUI (submodule) — THE MAIN APP
+│   ├── src/
+│   │   ├── main.rs                  # Entry point, event loops (ZAV/Server/Doctor modes)
+│   │   ├── app.rs                   # App state, tabs, sync triggers, all logic
+│   │   ├── api/boss.rs              # HTTP client: TUI → Boss API (localhost:8084)
+│   │   ├── models/patient.rs        # TUI-side Patient struct (deserialized from API)
+│   │   ├── server/
+│   │   │   ├── mod.rs               # Embedded axum server startup
+│   │   │   ├── routes/sync.rs       # POST /sync — imports from CyberIntern
+│   │   │   ├── routes/patients.rs   # GET /patients — serves patient data
+│   │   │   └── db.rs                # SQLite operations (upsert, update, query)
+│   │   ├── sync/
+│   │   │   ├── cyberintern.rs       # CyberIntern API client (fetch patients, details)
+│   │   │   └── enrichment_status.rs # Compute 027/o completeness %
+│   │   ├── ui/                      # All ratatui rendering
+│   │   │   ├── mod.rs               # Tab dispatch
+│   │   │   ├── patients.rs          # Patient list table
+│   │   │   ├── popup.rs             # Patient detail popup (6 tabs)
+│   │   │   ├── discharged.rs        # Discharged tab
+│   │   │   └── ...                  # vlk, wards, stats, operations, etc.
+│   │   └── pdf/generator.rs         # 027/o and Dovidka PDF generation
+│   └── target/debug/boss-tui.exe    # Debug build output
+├── cyberintern/                     # Python FastAPI (submodule) — EMR data bridge
+│   └── src/api/main.py              # FastAPI app on port 8082
+├── windows-deploy/                  # Production deployment folder
+│   ├── START.bat                    # Launch script (starts n8n, ngrok, CI, TUI)
+│   ├── ZAV.exe                      # Rust launcher (compiled from zav-launcher/)
+│   ├── boss-tui.exe                 # THE BINARY THAT RUNS (copied from build)
+│   └── secrets.bat                  # Environment secrets (not in git)
+├── zav-launcher/                    # Rust launcher source
+│   └── src/main.rs                  # Starts services then launches boss-tui.exe
+├── .beads/                          # Issue tracker data
+├── CLAUDE.md                        # THIS FILE
+└── STATUS.md                        # Project status
+```
+
+### DATA FLOW (what SHOULD happen):
+
+```
+CyberIntern (Python, port 8082)     Boss TUI Server (Rust, port 8084)
+  /api/patients → list of patients    POST /sync → start_sync()
+  /api/patients/{id} → full detail      → perform_ci_import()
+                                          → CIClient.fetch_all_patients()
+                                          → for each: upsert to SQLite
+                                          → for each: get_patient_detail()
+                                          → save 027/o fields to SQLite
+
+Boss TUI Client (same binary)
+  Press 's' → trigger_boss_sync()
+    → POST http://localhost:8084/sync
+    → poll sync_running status
+    → when done: fetch_all() refreshes UI
+```
+
+### PORTS:
+- **8082**: CyberIntern (Python FastAPI)
+- **8084**: Boss TUI embedded server (Rust axum)
+- **5678**: n8n (workflow automation)
+
+---
 
 ## 🎯 Issue Tracking & Project Memory
 

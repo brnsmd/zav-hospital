@@ -1,11 +1,48 @@
 # Zav Project Status
 
-**Updated:** 2026-02-12 22:00
-**Status:** ✅ PRODUCTION + MAJOR AUDIT FIXES DEPLOYED
+**Updated:** 2026-02-13 10:00
+**Status:** BROKEN — SYNC DOES NOT WORK. FULL LINE-BY-LINE AUDIT REQUIRED.
 
 ---
 
-## 🔧 LATEST: 4-Team Opus Audit Sprint (2026-02-12)
+## 🔴 2026-02-13: FULL STOP — STARTING FROM ZERO
+
+**What happened:** Multiple sessions of "fix and deploy" failed. Sync button (`s`) does nothing visible. Enrichment data never populates. Debug builds deployed but behavior unchanged. Root cause: we keep guessing instead of reading. Multiple audit teams found 91 issues but fixes were applied without verifying the actual runtime behavior.
+
+**The real problems (unverified — previous session's guesses):**
+- Sync trigger (`s` key in TUI) → calls `trigger_boss_sync()` → calls Boss API `POST /sync` → supposed to import from CyberIntern. **NEVER VERIFIED AT RUNTIME.**
+- CyberIntern API at localhost:8082 → assumed reachable. **NEVER VERIFIED.**
+- Database at `C:\ZavBoss\data\zav.db` → cleared on 2026-02-13. Fresh start.
+- The TUI binary at `windows-deploy/boss-tui.exe` → 162MB debug build deployed 2026-02-13 09:53.
+
+**What the next session MUST do:**
+
+### WINDUG MODE (Write It N' Debug)
+Every single step must be:
+1. Read the actual code line by line
+2. Verify with curl/logs what actually happens at runtime
+3. Track in beads before AND after
+4. Commit after each verified fix
+
+### The audit order:
+1. **START.bat → ZAV.exe → boss-tui.exe launch chain** — verify env vars arrive
+2. **`s` key press** → trace through main.rs event loop → api/boss.rs → server route → actual HTTP call
+3. **CyberIntern API** — curl it directly, verify it returns patients
+4. **Sync route** — read every line of perform_ci_import(), verify each step
+5. **DB writes** — verify data actually lands in SQLite after sync
+6. **UI refresh** — verify TUI re-fetches after sync completes
+7. **Maxun** — evaluate as EMR API replacement for cleaner data source
+
+### Previous changes (may or may not be working):
+- boss-tui commit `1e2eb3a`: 12 files changed, sync pipeline rewrite
+- Concurrent sync guard, direct CI ID enrichment, status in upsert
+- COALESCE for doctor/ward/bed, hospitalized_only=false
+- surgical_treatment included, instrumental_tests fixed
+- Help popup corrected, popup 1-6 keys, UTF-8 safe truncation
+
+---
+
+## 🔧 PREVIOUS: 4-Team Opus Audit Sprint (2026-02-12)
 
 **4 Opus Investigation Teams** deployed in parallel:
 - **Team Alpha (Bugs)**: Found 16 bugs (2 P0, 3 P1, 4 P2, 7 P3)
