@@ -1,0 +1,39 @@
+[package]
+name = "nurse-tui"
+version = "0.1.0"
+edition = "2021"
+description = "Nurse station TUI for EMR automation"
+authors = ["Grug & Clug Tribe"]
+
+[dependencies]
+# TUI framework
+ratatui = "0.29"
+crossterm = "0.28"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Browser automation (Chrome DevTools Protocol)
+chromiumoxide = { version = "0.7", features = ["tokio-runtime"] }
+futures = "0.3"
+
+# HTTP client (for direct API calls if available)
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Environment
+dotenvy = "0.15"
+
+# Random for vitals variance
+rand = "0.8"
+
+# Config directory
+dirs = "6.0"

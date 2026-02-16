@@ -74,6 +74,8 @@ google_sheets_creds.json
 *.tmp
 *.bak
 .cache/
+tmp_*.json
+cookies.txt
 
 # OS
 .DS_Store

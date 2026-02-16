@@ -29,48 +29,21 @@ set ZAV_DATABASE_PATH=C:\ZavBoss\data\zav.db
 set HOSPITAL_SUBNET=192.168.4.
 set HOSPITAL_GATEWAY=192.168.4.1
 
-:: Browser mode (true=headless, false=show window)
-set BOSS_HEADLESS=true
-set RUST_LOG=boss_tui=debug,chromiumoxide=info
+:: EMR direct API (no more CyberIntern)
+set EMR_URL=https://doc.hospital.mia.software
+set EMR_ROLE_ID=23622
+set RUST_LOG=boss_tui=debug
 
-:: Store PIDs for targeted cleanup
-echo [1/4] Starting n8n in background...
-start /B cmd /C "n8n start > nul 2>&1"
-timeout /t 5 /nobreak > nul
+:: n8n and ngrok disabled (deferred — not needed yet)
+:: To re-enable: uncomment the n8n and ngrok blocks below
+:: start /B cmd /C "n8n start > nul 2>&1"
+:: start /B cmd /C "ngrok http 5678 --domain=kristeen-rootlike-unflirtatiously.ngrok-free.dev > nul 2>&1"
 
-echo        Checking n8n...
-curl -s http://localhost:5678/healthz > nul 2>&1
-if %errorlevel%==0 (
-    echo       n8n: OK
-) else (
-    echo       n8n: Starting... please wait
-    timeout /t 10 /nobreak > nul
-    curl -s http://localhost:5678/healthz > nul 2>&1
-    if %errorlevel%==0 (
-        echo       n8n: OK
-    ) else (
-        echo       n8n: Still starting... waiting more
-        timeout /t 10 /nobreak > nul
-    )
-)
-
-echo [2/4] Starting ngrok tunnel in background...
-start /B cmd /C "ngrok http 5678 --domain=kristeen-rootlike-unflirtatiously.ngrok-free.dev > nul 2>&1"
-echo       ngrok: Started
-
-echo [3/4] Starting CyberIntern in background...
-set CYBERINTERN_DIR=%~dp0..\cyberintern
-set CYBERINTERN_API_URL=http://127.0.0.1:8082
-start /B cmd /C "cd /d %CYBERINTERN_DIR% && python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8082 > nul 2>&1"
-timeout /t 3 /nobreak > nul
-echo       CyberIntern: Started (port 8082)
-
-echo [4/4] Starting Boss TUI...
+echo Starting Boss TUI...
 echo.
 echo  Config:
 echo    BOSS API:  %BOSS_API_URL%
-echo    CI API:    %CYBERINTERN_API_URL%
-echo    N8N:       %N8N_URL%
+echo    EMR:       %EMR_URL%
 echo    Subnet:    %HOSPITAL_SUBNET%
 echo.
 echo  ====================================
@@ -78,15 +51,10 @@ echo  DO NOT CLOSE THIS WINDOW!
 echo  ====================================
 echo.
 
-ZAV.exe
+boss-tui.exe
 
 echo.
 echo Stopping services...
-:: Kill only our specific processes by window title/port, not all node/python
-:: ngrok is safe to kill globally (only one instance)
-taskkill /F /IM ngrok.exe > nul 2>&1
-:: Kill n8n (node on port 5678) and CyberIntern (python on port 8082)
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5678.*LISTENING" 2^>nul') do taskkill /F /PID %%a > nul 2>&1
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8082.*LISTENING" 2^>nul') do taskkill /F /PID %%a > nul 2>&1
+:: n8n/ngrok disabled — nothing to clean up
 echo Services stopped.
 pause
