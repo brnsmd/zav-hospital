@@ -24,7 +24,7 @@ The "simplify" epic (Feb 13-17) successfully removed CyberIntern middleware and 
 | 5 | EMR client builder silently fell back to cookieless client | All auth would silently fail | `expect()` instead of fallback |
 | 6 | No retry limit on 401/403 in paginated requests | Infinite loop on locked accounts | 3-retry limit |
 
-**Follow-up commits:**
+**Follow-up commits (round 1):**
 
 | Commit | Description |
 |--------|-------------|
@@ -34,11 +34,21 @@ The "simplify" epic (Feb 13-17) successfully removed CyberIntern middleware and 
 | `4cd6a6d` | Extract history_number from EMR case detail |
 | `0737d86` | Add DEBUG.bat launcher for debug builds |
 
+**Follow-up commits (round 2 — audit-driven):**
+
+| Commit | Description |
+|--------|-------------|
+| `40d245c` | Prevent data loss: log enrichment save errors, skip hash on failure; COALESCE case_date/admission_date/sex; add sub-table upserts to HTTP enrichment |
+| `107e1f3` | Multi-format birthday parsing (%Y-%m-%d, %d.%m.%Y, ISO); proper admission_date/created_at sourcing |
+| `c731a30` | Store consultation recommendations in sub-table (was fetched but discarded) |
+| `866533f` | Replace panic on DB open failure with proper error propagation |
+
 ### Current state
 
 - Debug build compiled and ready at `boss-tui/target/debug/boss-tui.exe`
 - `boss-tui/DEBUG.bat` launches with correct env vars
 - Testing pending (user in OR)
+- Total: 15 files changed, 370+ insertions, 300+ deletions across 11 commits
 
 ### Remaining known issues
 
@@ -46,6 +56,7 @@ The "simplify" epic (Feb 13-17) successfully removed CyberIntern middleware and 
 - **sicklist_start/end** — Never populated (EnrichmentData doesn't have these fields)
 - **blood_type** — Never extracted from EMR
 - **Several DB fields not in UI model** — contingent, diagnosis_specified, notes, etc. stored but not displayed
+- **Non-canonical JSON hashing** — serde_json key order not guaranteed across API calls, may cause unnecessary re-enrichment (low priority)
 
 ---
 
